@@ -1,11 +1,13 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useQuery } from "../use-query";
 import type { Product } from "@/@types/product";
+import apiClient from '@/services/api';
 
 interface ProductsParams {
   search?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  isAdmin?: boolean;
 }
 
 // Definindo os tipos de retorno possíveis
@@ -13,42 +15,42 @@ type SingleProductQuery = UseQueryResult<Product, unknown>;
 type MultipleProductsQuery = UseQueryResult<Product[], unknown>;
 
 // Definindo as sobrecargas da função
-export function useProducts(id: string): SingleProductQuery;
+export function useProducts(id: string, isAdmin?: boolean): SingleProductQuery;
 export function useProducts(params?: ProductsParams): MultipleProductsQuery;
 export function useProducts(
-  idOrParams?: string | ProductsParams
+  idOrParams?: string | ProductsParams,
+  isAdmin?: boolean
 ): SingleProductQuery | MultipleProductsQuery {
   return useQuery<any>(
     ["products", typeof idOrParams === "string" ? idOrParams : idOrParams],
     async () => {
       if (typeof idOrParams === "string") {
-        try {
-          const response = await fetch(`/api/admin/products/${idOrParams}`);
-          if (!response.ok) throw new Error("Failed to fetch product");
-          return response.json();
-        } catch (error) {
-          console.error("Error fetching product:", error);
-          throw error;
+        // Se for admin, usa a rota admin
+        if (isAdmin) {
+          return apiClient.admin.getProduct(idOrParams);
         }
+        // Se não for admin, usa a rota pública
+        return apiClient.getStoreProduct(idOrParams);
       } else {
-        try {
-          const params = idOrParams as ProductsParams;
-          const searchParams = new URLSearchParams();
-
-          if (params?.search) searchParams.set("search", params.search);
-          if (params?.sortBy) searchParams.set("sortBy", params.sortBy);
-          if (params?.sortOrder) searchParams.set("sortOrder", params.sortOrder);
-
-          const queryString = searchParams.toString();
-          const url = `/api/admin/products${queryString ? `?${queryString}` : ""}`;
-
-          const response = await fetch(url);
-          if (!response.ok) throw new Error("Failed to fetch products");
-          return response.json();
-        } catch (error) {
-          console.error("Error fetching products:", error);
-          throw error;
+        const params = idOrParams as ProductsParams;
+        
+        // Se for admin, usa as rotas admin
+        if (params?.isAdmin) {
+          const result = await apiClient.admin.getProducts({
+            search: params?.search,
+            sort: params?.sortBy,
+            order: params?.sortOrder,
+          });
+          return result.items;
         }
+
+        // Para rota pública
+        const result = await apiClient.getStoreProducts({
+          search: params?.search,
+          sort: params?.sortBy,
+          order: params?.sortOrder,
+        });
+        return result.items;
       }
     }
   );

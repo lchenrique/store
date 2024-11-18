@@ -1,21 +1,44 @@
-"use client";
-
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import apiClient from '@/services/api';
+import { Product } from "@/types";
 
 export interface CartItem {
   id: string;
   quantity: number;
   price: number;
+  name: string;
+  images: string[];
 }
 
 interface CartStore {
   items: CartItem[];
   addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
-  clearCart: () => void;
   updateQuantity: (id: string, quantity: number) => void;
+  clearCart: () => void;
   syncWithDatabase: () => Promise<void>;
+}
+
+// Função auxiliar para mesclar carrinhos
+function mergeCartItems(localItems: CartItem[], dbItems: { id: string; product: Product; quantity: number }[]) {
+  const mergedItems = [...localItems];
+  
+  dbItems.forEach((dbItem) => {
+    const existingItemIndex = mergedItems.findIndex(item => item.id === dbItem.product.id);
+    
+    if (existingItemIndex === -1) {
+      mergedItems.push({
+        id: dbItem.product.id,
+        quantity: dbItem.quantity,
+        price: dbItem.product.price,
+        name: dbItem.product.name,
+        images: dbItem.product.images,
+      });
+    }
+  });
+  
+  return mergedItems;
 }
 
 export const useCart = create<CartStore>()(
@@ -25,51 +48,43 @@ export const useCart = create<CartStore>()(
       addItem: (item) =>
         set((state) => {
           const existingItem = state.items.find((i) => i.id === item.id);
+          let newItems;
+
           if (existingItem) {
-            const newItems = state.items.map((i) =>
+            newItems = state.items.map((i) =>
               i.id === item.id
                 ? { ...i, quantity: i.quantity + item.quantity }
                 : i
             );
-            // Se usuário estiver logado, sincroniza com o banco
-            syncCartWithServer(newItems);
-            return { items: newItems };
+          } else {
+            newItems = [...state.items, item];
           }
-          const newItems = [...state.items, item];
-          // Se usuário estiver logado, sincroniza com o banco
+
           syncCartWithServer(newItems);
           return { items: newItems };
         }),
       removeItem: (id) =>
         set((state) => {
-          const newItems = state.items.filter((i) => i.id !== id);
-          // Se usuário estiver logado, sincroniza com o banco
+          const newItems = state.items.filter((item) => item.id !== id);
           syncCartWithServer(newItems);
           return { items: newItems };
         }),
-      clearCart: () => {
-        set({ items: [] });
-        // Se usuário estiver logado, limpa o carrinho no banco
-        syncCartWithServer([]);
-      },
       updateQuantity: (id, quantity) =>
         set((state) => {
           const newItems = state.items.map((item) =>
             item.id === id ? { ...item, quantity } : item
           );
-          // Se usuário estiver logado, sincroniza com o banco
           syncCartWithServer(newItems);
           return { items: newItems };
         }),
+      clearCart: () => set({ items: [] }),
       syncWithDatabase: async () => {
         try {
-          const response = await fetch('/api/cart');
-          if (!response.ok) throw new Error();
-          const dbCart = await response.json();
+          const { items: dbItems } = await apiClient.getCart();
           
           // Mescla itens do localStorage com o banco
           set((state) => {
-            const mergedItems = mergeCartItems(state.items, dbCart.items);
+            const mergedItems = mergeCartItems(state.items, dbItems);
             return { items: mergedItems };
           });
         } catch (error) {
@@ -78,7 +93,7 @@ export const useCart = create<CartStore>()(
       },
     }),
     {
-      name: 'shopping-cart',
+      name: "cart-storage",
     }
   )
 );
@@ -86,38 +101,8 @@ export const useCart = create<CartStore>()(
 // Função auxiliar para sincronizar com o servidor
 async function syncCartWithServer(items: CartItem[]) {
   try {
-    const response = await fetch('/api/cart', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items }),
-    });
-    if (!response.ok) throw new Error();
+    await apiClient.updateCart(items);
   } catch (error) {
     console.error('Failed to sync cart with server:', error);
   }
-}
-
-// Função para mesclar carrinhos
-function mergeCartItems(localItems: CartItem[], dbItems: CartItem[]): CartItem[] {
-  const mergedItems = new Map<string, CartItem>();
-  
-  // Adiciona itens do localStorage
-  localItems.forEach(item => {
-    mergedItems.set(item.id, item);
-  });
-  
-  // Mescla com itens do banco
-  dbItems.forEach(item => {
-    const existingItem = mergedItems.get(item.id);
-    if (existingItem) {
-      mergedItems.set(item.id, {
-        ...item,
-        quantity: existingItem.quantity + item.quantity,
-      });
-    } else {
-      mergedItems.set(item.id, item);
-    }
-  });
-  
-  return Array.from(mergedItems.values());
 }

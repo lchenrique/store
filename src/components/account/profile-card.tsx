@@ -9,7 +9,7 @@ import { ProfileSkeleton } from "./skeletons/profile-skeleton";
 
 export function ProfileCard() {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-  const { data: profile, isLoading } = useProfile();
+  const { profile, isLoading } = useProfile();
 
   if (isLoading) {
     return <ProfileSkeleton />;

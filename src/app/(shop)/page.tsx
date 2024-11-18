@@ -25,6 +25,7 @@ export default function ShopPage() {
     sortOrder,
   });
 
+
   const handleSortChange = (value: string) => {
     const [newSortBy, newSortOrder] = value.split("-");
     setSortBy(newSortBy);
@@ -47,7 +48,7 @@ export default function ShopPage() {
   };
 
   return (
-    <div>
+    <div >
       <Hero 
         title="Presentes Especiais para Momentos Únicos"
         subtitle="Descubra nossa seleção exclusiva de presentes para todas as ocasiões"

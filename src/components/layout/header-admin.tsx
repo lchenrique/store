@@ -34,24 +34,29 @@ export function HeaderAdmin() {
   };
 
   return (
-    <header className="h-16 px-6 flex items-center justify-between">
-      <Button 
-        onClick={() => router.push('/')} 
-        variant="ghost" 
-        size="icon"
-        title="Ir para a Loja"
-      >
-        <Store className="h-5 w-5" />
-      </Button>
+    <header className="p-4">
+      <div className="rounded-xl border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
+        <div className="h-14 px-6 flex items-center justify-between">
+          <Button 
+            onClick={() => router.push('/')} 
+            variant="ghost" 
+            size="icon"
+            title="Ir para a Loja"
+            className="rounded-lg hover:bg-accent/50"
+          >
+            <Store className="h-5 w-5" />
+          </Button>
 
-      <div className="flex items-center gap-2">
-        {user && (
-          <div className="flex items-center gap-4">
-            <PaletteSwitcher />
-            <ThemeSwitcher />
-            <LogoutConfirmation onConfirm={handleLogout} isAdmin={true} />
+          <div className="flex items-center gap-2">
+            {user && (
+              <div className="flex items-center gap-4">
+                <PaletteSwitcher />
+                <ThemeSwitcher />
+                <LogoutConfirmation onConfirm={handleLogout} isAdmin={true} />
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </header>
   );

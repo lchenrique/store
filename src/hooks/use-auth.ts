@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '@/lib/auth';
+import apiClient from '@/services/api';
 
 interface AuthState {
   user: any;
@@ -14,7 +14,7 @@ export const useAuth = create<AuthState>((set) => ({
   isLoading: true,
   setUser: (user) => set({ user, isLoading: false }),
   signIn: async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await apiClient.auth.signIn({
       email,
       password,
     });
@@ -24,7 +24,7 @@ export const useAuth = create<AuthState>((set) => ({
     return { error };
   },
   signOut: async () => {
-    await supabase.auth.signOut();
+    await apiClient.auth.signOut();
     set({ user: null });
   },
 }));

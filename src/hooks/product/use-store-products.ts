@@ -1,6 +1,7 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useQuery } from "../use-query";
 import type { Product } from "@/@types/product";
+import apiClient  from "@/services/api";
 
 interface StoreProductsParams {
   search?: string;
@@ -23,9 +24,7 @@ export function useStoreProducts(
     async () => {
       if (typeof idOrParams === "string") {
         try {
-          const response = await fetch(`/api/products/${idOrParams}`);
-          if (!response.ok) throw new Error("Failed to fetch product");
-          return response.json();
+          return apiClient.getStoreProduct(idOrParams);
         } catch (error) {
           console.error("Error fetching product:", error);
           throw error;
@@ -33,18 +32,7 @@ export function useStoreProducts(
       } else {
         try {
           const params = idOrParams as StoreProductsParams;
-          const searchParams = new URLSearchParams();
-
-          if (params?.search) searchParams.set("search", params.search);
-          if (params?.sortBy) searchParams.set("sortBy", params.sortBy);
-          if (params?.sortOrder) searchParams.set("sortOrder", params.sortOrder);
-
-          const queryString = searchParams.toString();
-          const url = `/api/products${queryString ? `?${queryString}` : ""}`;
-
-          const response = await fetch(url);
-          if (!response.ok) throw new Error("Failed to fetch products");
-          return response.json();
+          return apiClient.getStoreProducts(params);
         } catch (error) {
           console.error("Error fetching products:", error);
           throw error;

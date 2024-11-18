@@ -1,72 +1,42 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase/client";
-
-interface Order {
-  id: string;
-  created_at: string;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
-  total: number;
-  items: {
-    id: string;
-    quantity: number;
-    price: number;
-    product: {
-      id: string;
-      name: string;
-      images: string[];
-    };
-  }[];
-}
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import apiClient from '@/services/api';
+import type { Order, OrderInput } from '@/services/types';
 
 export function useOrders() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(true);
 
+  const query = useQuery({
+    queryKey: ['orders'],
+    queryFn: () => apiClient.getOrders(),
+  });
+
+  const createOrder = useMutation({
+    mutationFn: (orderData: OrderInput) => apiClient.createOrder(orderData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      toast.success("Pedido criado com sucesso!");
+    },
+  });
+
+  const cancelOrder = useMutation({
+    mutationFn: (orderId: string) => apiClient.cancelOrder(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      toast.success("Pedido cancelado com sucesso!");
+    },
+  });
+
   useEffect(() => {
-    async function loadOrders() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
-          setOrders([]);
-          setIsLoading(false);
-          return;
-        }
-
-        const { data: orders, error } = await supabase
-          .from('orders')
-          .select(`
-            *,
-            items:order_items (
-              id,
-              quantity,
-              price,
-              product:products (
-                id,
-                name,
-                images
-              )
-            )
-          `)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        setOrders(orders || []);
-      } catch (error) {
-        console.error('Error loading orders:', error);
-        setOrders([]);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    loadOrders();
-  }, []);
+    setIsLoading(query.isLoading);
+  }, [query.isLoading]);
 
   return {
-    orders,
-    isLoading
+    orders: query.data || [],
+    isLoading,
+    createOrder: createOrder.mutate,
+    cancelOrder: cancelOrder.mutate,
   };
 }

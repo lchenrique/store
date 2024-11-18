@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import apiClient from '@/services/api';
 
 interface ViaCEPResponse {
   cep: string;
@@ -28,8 +29,7 @@ export function useCEP() {
     setError(null);
 
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
-      const data = await response.json() as ViaCEPResponse;
+      const data = await apiClient.getAddressByCEP(cleanCEP);
 
       if (data.erro) {
         setError('CEP não encontrado');

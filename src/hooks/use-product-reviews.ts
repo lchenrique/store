@@ -1,12 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import apiClient from '@/services/api';
 import { User } from "@/types";
+import type { Review as ApiReview } from '@/services/types';
 
-interface Review {
-  id: string;
-  rating: number;
-  comment: string;
-  createdAt: string;
+// Review com dados do usuário
+interface ReviewWithUser extends ApiReview {
   user: {
     name: string | null;
   };
@@ -17,7 +16,7 @@ interface ReviewData {
   comment: string;
 }
 
-export function useProductReviews(productId: string, user: User | null, initialReviews: Review[] = []) {
+export function useProductReviews(productId: string, user: User | null, initialReviews: ReviewWithUser[] = []) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -27,25 +26,28 @@ export function useProductReviews(productId: string, user: User | null, initialR
     queryFn: async () => {
       if (!user) return false;
       console.log("[canReview] Checking if user can review...");
-      const response = await fetch(`/api/products/${productId}/can-review`);
-      if (!response.ok) throw new Error("Failed to check review permission");
-      const data = await response.json();
-      console.log("[canReview] Result:", data);
-      return data.canReview;
+      const { canReview } = await apiClient.canReviewProduct(productId);
+      console.log("[canReview] Result:", canReview);
+      return canReview;
     },
     enabled: !!user,
   });
 
   // Query para buscar as reviews
-  const { data: reviews = initialReviews } = useQuery({
+  const { data: reviews = initialReviews } = useQuery<ReviewWithUser[], Error, ReviewWithUser[], [string, string]>({
     queryKey: ["reviews", productId],
     queryFn: async () => {
       console.log("[reviews] Fetching reviews...");
-      const response = await fetch(`/api/products/${productId}/reviews`);
-      if (!response.ok) throw new Error("Failed to fetch reviews");
-      const data = await response.json();
-      console.log("[reviews] Fetched reviews:", data);
-      return data;
+      const apiReviews = await apiClient.getProductReviews(productId);
+      console.log("[reviews] Fetched reviews:", apiReviews);
+      
+      // Mapear as reviews para incluir os dados do usuário
+      return apiReviews.map((review): ReviewWithUser => ({
+        ...review,
+        user: {
+          name: "Usuário" // TODO: Buscar nome do usuário da API
+        }
+      }));
     },
     initialData: initialReviews,
     enabled: initialReviews.length === 0,
@@ -68,23 +70,19 @@ export function useProductReviews(productId: string, user: User | null, initialR
       }
 
       console.log("[submitReview] Making POST request...");
-      const response = await fetch(`/api/products/${productId}/reviews`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
+      const apiReview = await apiClient.createReview({
+        ...data,
+        productId,
       });
-
-      if (!response.ok) {
-        const error = await response.text();
-        console.error("[submitReview] Request failed:", error);
-        throw new Error(error);
-      }
-
-      const result = await response.json();
-      console.log("[submitReview] Success:", result);
-      return result;
+      console.log("[submitReview] Success:", apiReview);
+      
+      // Adiciona os dados do usuário à review
+      return {
+        ...apiReview,
+        user: {
+          name: user.user_metadata?.name || "Usuário"
+        }
+      } satisfies ReviewWithUser;
     },
     onMutate: async (newReview) => {
       console.log("[onMutate] Starting optimistic update...");
@@ -97,17 +95,19 @@ export function useProductReviews(productId: string, user: User | null, initialR
       const previousCanReview = queryClient.getQueryData(["canReview", productId]);
 
       // Optimistically update to the new value
-      const optimisticReview = {
+      const optimisticReview: ReviewWithUser = {
         id: Date.now().toString(),
         rating: newReview.rating,
         comment: newReview.comment,
         createdAt: new Date().toISOString(),
+        userId: user?.id || '',
+        productId,
         user: {
-          name: user?.user_metadata?.name || "Usuário",
-        },
+          name: user?.user_metadata?.name || "Usuário"
+        }
       };
 
-      queryClient.setQueryData(["reviews", productId], (old: Review[] = []) => {
+      queryClient.setQueryData(["reviews", productId], (old: ReviewWithUser[] = []) => {
         return [optimisticReview, ...old];
       });
 

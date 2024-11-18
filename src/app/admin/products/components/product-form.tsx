@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Product } from "@/src/@types/product";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ImageUpload } from "@/components/image-upload";
@@ -19,6 +18,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import Image from "next/image";
 import { AlertTriangle, X } from "lucide-react";
 import BackButton from "@/components/back-button";
+import { Product } from "@/@types/product";
 
 const productSchema = z.object({
   name: z

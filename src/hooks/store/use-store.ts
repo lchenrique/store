@@ -5,6 +5,7 @@ import type { SettingsForm } from "@/app/admin/settings/components/settings-form
 import { toast } from "@/hooks/use-toast";
 import { usePaletteStore } from "@/store/use-palette-store";
 import { palettes } from "@/config/themes";
+import { apiClient } from "@/services/api";
 
 interface UpdateSettingsData {
   data: SettingsForm;
@@ -15,13 +16,7 @@ interface UpdateSettingsData {
 export function useStoreQuery() {
   const { data: store, isLoading: isLoadingStore } = useQuery({
     queryKey: ["store"],
-    queryFn: async () => {
-      const response = await fetch("/api/store");
-      if (!response.ok) {
-        throw new Error("Failed to fetch store");
-      }
-      return response.json();
-    },
+    queryFn: () => apiClient.getStore(),
     staleTime: Infinity, // Mantem o cache para sempre até ser invalidado
     gcTime: Infinity, // Nunca remove do cache (garbage collection time)
     refetchOnMount: false, // Não refetch ao montar
@@ -37,26 +32,12 @@ export function useStoreMutations() {
 
   const updateSettings = useMutation({
     mutationFn: async ({ data, logo }: UpdateSettingsData) => {
-      const formData = new FormData();
-      
       let logoUrl = data.logo;
       if (logo) {
         logoUrl = await uploadImage(logo, "logo", logo.name);
       }
 
-      formData.append("data", JSON.stringify({ ...data, logo: logoUrl }));
-
-      const response = await fetch("/api/store", {
-        method: "PATCH",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || "Erro ao atualizar configurações da loja");
-      }
-
-      return response.json();
+      return apiClient.updateStore({ ...data, logo: logoUrl });
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(["store"], updated);
@@ -94,25 +75,17 @@ export function useStoreMutations() {
         usePaletteStore.getState().updatePalette(selectedPalette);
       }
 
-      const formData = new FormData();
-      formData.append("data", JSON.stringify({ palette }));
-
-      const response = await fetch("/api/store", {
-        method: "PATCH",
-        body: formData,
-      });
-
-      if (!response.ok) {
+      try {
+        return await apiClient.updateStorePalette(palette);
+      } catch (error) {
         // Em caso de erro, reverte o cache e o tema
         queryClient.setQueryData(["store"], previousStore);
         const previousPalette = palettes.find(p => p.name === previousStore?.palette);
         if (previousPalette) {
           usePaletteStore.getState().updatePalette(previousPalette);
         }
-        throw new Error("Erro ao atualizar paleta da loja");
+        throw error;
       }
-
-      return response.json();
     },
     onError: (error) => {
       console.error("[UPDATE_PALETTE_ERROR]", error);
@@ -126,21 +99,7 @@ export function useStoreMutations() {
 
   const updateLogo = useMutation({
     mutationFn: async (logo: File) => {
-      const logoUrl = await uploadImage(logo, "logo", logo.name);
-      
-      const formData = new FormData();
-      formData.append("data", JSON.stringify({ logo: logoUrl }));
-
-      const response = await fetch("/api/store", {
-        method: "PATCH",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao atualizar logo da loja");
-      }
-
-      return response.json();
+      return apiClient.updateStoreLogo(logo);
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(["store"], updated);

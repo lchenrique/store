@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { supabase } from '@/lib/supabase/client';
 import type { UserProfile } from './types';
+import apiClient  from "@/services/api";
 
 interface ProfileData {
   name: string;
@@ -12,27 +12,7 @@ export function useProfileMutation() {
 
   return useMutation({
     mutationFn: async (data: ProfileData) => {
-      // Primeiro verifica se tem sessão
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error("Não autorizado");
-      }
-
-      const response = await fetch("/api/user/profile", {
-        method: "PUT",
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao atualizar perfil");
-      }
-
-      return response.json() as Promise<UserProfile>;
+      return apiClient.updateProfile(data);
     },
     onMutate: async (newProfile) => {
       // Cancela quaisquer refetchs pendentes para que não sobrescrevam nossa atualização otimista
@@ -60,7 +40,7 @@ export function useProfileMutation() {
       }
       toast.error("Erro ao atualizar o perfil. Tente novamente.");
     },
-    onSuccess: (updatedProfile) => {
+    onSuccess: () => {
       toast.success("Perfil atualizado com sucesso!");
     },
   });

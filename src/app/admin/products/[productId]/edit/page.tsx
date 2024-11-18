@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { ProductForm, type FormValues } from "../../components/product-form";
@@ -11,11 +11,13 @@ import Link from "next/link";
 import { MainContainer } from "@/components/layout/main-container";
 import MainHeader from "@/components/layout/main-header";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function EditProductPage() {
+  const queryClient = useQueryClient();
   const { productId } = useParams();
 
-  const { data: product, isFetching } = useProducts(productId as string);
+  const { data: product, isFetching } = useProducts(productId as string, true);
 
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);

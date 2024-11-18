@@ -3,6 +3,7 @@ import { useMutation } from "../use-query";
 import type { FormValues } from "@/app/admin/products/components/product-form";
 import { deleteImage, uploadImage } from "@/services/s3";
 import { convertToWebP } from "@/lib/utils";
+import  apiClient from "@/services/api";
 
 interface UpdateProductData {
   id: string;
@@ -39,24 +40,15 @@ export const useUpdateProduct = () => {
       await processImages();
       const uniqueImageUrls = Array.from(new Set(imageUrls));
 
-      const response = await fetch(`/api/admin/products/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          ...data,
-          images: uniqueImageUrls
-        }),
+      return apiClient.admin.updateProduct(id, {
+        ...data,
+        images: uniqueImageUrls
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || "Erro ao atualizar produto");
-      }
-
-      return response.json();
     },
     {
-      onSuccess: (updated, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['products'] });
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+        queryClient.invalidateQueries({ queryKey: ["products"] });
       },
     }
   );

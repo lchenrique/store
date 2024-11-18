@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { apiClient } from "@/services/api";
 
 export function useFavorite(productId: string) {
   const { toast } = useToast();
@@ -8,31 +9,15 @@ export function useFavorite(productId: string) {
   const { data: isFavorite = false } = useQuery({
     queryKey: ["favorite", productId],
     queryFn: async () => {
-      const response = await fetch(`/api/favorites?productId=${productId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch favorite status");
-      }
-      const data = await response.json();
-      return data.isFavorite;
+      const { isFavorite } = await apiClient.getFavoriteStatus(productId);
+      return isFavorite;
     },
     staleTime: 0,
   });
 
   const { mutate: toggleFavorite } = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/favorites", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ productId }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to toggle favorite");
-      }
-
-      return response.json();
+      return apiClient.toggleFavorite(productId);
     },
     onMutate: async () => {
       // Cancela qualquer refetch em andamento
@@ -66,7 +51,6 @@ export function useFavorite(productId: string) {
       // Atualiza com o valor real retornado pela API
       queryClient.setQueryData(["favorite", productId], data.isFavorite);
       
-
       toast({
         title: "Sucesso",
         description: isFavorite 

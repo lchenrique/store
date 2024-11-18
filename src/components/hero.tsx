@@ -15,9 +15,9 @@ export function Hero({
   imageUrl = "/hero-image.jpg", // Você precisará adicionar uma imagem aqui
 }: HeroProps) {
   return (
-    <div className="relative overflow-hidden bg-background">
+    <div className="relative overflow-hidden bg-background pt-20 md:pt-10">
       {/* Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-background to-background" />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center py-12 md:py-16 lg:py-20">
@@ -26,13 +26,13 @@ export function Hero({
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className="relative z-10 space-y-6"
+            className="relative z-10 space-y-6 text-center md:text-left"
           >
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight"
+              className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-center md:text-left"
             >
               {title}
             </motion.h1>
@@ -40,7 +40,7 @@ export function Hero({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="text-lg md:text-xl text-muted-foreground max-w-lg"
+              className="text-lg md:text-xl text-muted-foreground md:max-w-lg text-center w-full md:text-left"
             >
               {subtitle}
             </motion.p>
@@ -48,7 +48,7 @@ export function Hero({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.6 }}
-              className="flex flex-wrap gap-4"
+              className="flex flex-wrap gap-4 justify-center md:justify-start"
             >
               <Button size="lg" asChild>
                 <Link href="/products">Explorar Produtos</Link>
