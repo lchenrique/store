@@ -4,7 +4,6 @@ export interface Product {
   description: string;
   price: number;
   images: string[];
-  category: string;
   stock: number;
   featured: boolean;
   createdAt: string;
@@ -88,7 +87,6 @@ export interface AdminProduct {
   description: string;
   price: number;
   images: string[];
-  category: string;
   stock: number;
   featured: boolean;
   createdAt: string;
@@ -97,11 +95,11 @@ export interface AdminProduct {
 
 export interface AdminProductInput {
   name: string;
-  description: string;
+  description?: string;
   price: number;
-  category: string;
   stock: number;
   featured?: boolean;
+  images?: string[];
 }
 
 export interface AdminCategory {
@@ -161,7 +159,6 @@ export interface StoreProductsParams {
   page?: number;
   limit?: number;
   search?: string;
-  category?: string;
   sort?: string;
   order?: 'asc' | 'desc';
 }
@@ -172,7 +169,7 @@ export interface UserProfile {
   name?: string;
   avatar?: string;
   phone?: string;
-  role: 'user' | 'admin';
+  role: 'CUSTOMER' | 'ADMIN';
   createdAt: string;
   updatedAt: string;
 }

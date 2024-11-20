@@ -12,15 +12,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, price, stock, images } = body;
 
     const product = await db.product.create({
       data: {
-        name,
-        description,
-        price: Number(price),
-        stock: Number(stock),
-        images,
+        name: body.name,
+        description: body.description,
+        price: Number(body.price),
+        images: body.images,
+        stock: Number(body.stock),
       },
     });
 

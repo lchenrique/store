@@ -66,8 +66,8 @@ export default function CartPage() {
 
   if (isLoading) {
     return (
-      <div className="bg-muted/40">
-        <div className="container mx-auto px-4 py-16">
+      <div className="bg-muted/40 pt-20">
+        <div className="container mx-auto px-4 py-16 max-w-[1280px]">
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
               <div>
@@ -143,7 +143,7 @@ export default function CartPage() {
 
   if (!cart?.length) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] p-8">
+      <div className="flex flex-col items-center justify-center min-h-[70vh] p-8 pt-20">
         <div className="mb-6">
           <ShoppingBag className="h-24 w-24 text-muted-foreground/60" strokeWidth={1} />
         </div>
@@ -163,8 +163,8 @@ export default function CartPage() {
   }
 
   return (
-    <div className="bg-muted/40">
-      <div className="container mx-auto px-4 py-16">
+    <div className="bg-muted/40 pt-20">
+      <div className="container mx-auto px-4 py-16 max-w-[1280px]">
         <div className="flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <div>
@@ -189,7 +189,7 @@ export default function CartPage() {
                   <div className="flex gap-6 p-6">
                     <div className="relative aspect-square w-32 overflow-hidden rounded-xl bg-muted/50">
                       <Image
-                        src={item.image || '/placeholder.png'}
+                        src={item?.images?.[0] || '/placeholder.png'}
                         alt={item.name || 'Product'}
                         fill
                         className="object-cover transition-all hover:scale-105"

@@ -56,8 +56,8 @@ const testimonials = [
 
 export default function TestimonialsPage() {
   return (
-    <div className="bg-muted/40">
-      <div className="container mx-auto px-4 py-16">
+    <div className="bg-muted/40 pt-32">
+      <div className="container mx-auto px-4 py-16 max-w-[1280px]">
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-4xl font-bold mb-4">O Que Nossos Clientes Dizem</h1>

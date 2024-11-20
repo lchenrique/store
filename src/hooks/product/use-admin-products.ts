@@ -1,7 +1,7 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useQuery } from "../use-query";
-import type { Product } from "@/@types/product";
 import { supabase } from "@/lib/supabase/client";
+import { Product } from "@/services/types";
 
 interface AdminProductsParams {
   search?: string;

@@ -3,7 +3,7 @@ import { useMutation } from "../use-query";
 import type { FormValues } from "@/app/admin/products/components/product-form";
 import { convertToWebP } from "@/lib/utils";
 import { uploadImage } from "@/services/s3";
-import { apiClient } from "@/services/api";
+import apiClient  from "@/services/api";
 
 export const useCreateProduct = () => {
   const queryClient = useQueryClient();

@@ -1,28 +1,32 @@
 import { NextResponse, type NextRequest } from "next/server";
 import db from "@/lib/db";
-import { uploadImage } from "@/services/s3";
 import { getUserSSR } from "@/services/get-user-ssr";
-import { getAccessToken } from "@/services/get-acess-token";
+import { uploadImage } from "@/services/s3";
 
 export async function PATCH(request: NextRequest) {
   try {
-    console.log("[PATCH /api/store] Request cookies:", request.cookies.getAll().map(c => c.name));
-    console.log("[PATCH /api/store] Request headers:", Object.fromEntries(request.headers.entries()));
-    
-    const token = getAccessToken(request);
-    console.log("[PATCH /api/store] Token found:", !!token);
-    
     const user = await getUserSSR(request);
-    console.log("[PATCH /api/store] User found:", !!user);
     
     if (!user || typeof user !== 'object' || !('id' in user) || user.user_metadata.role !== 'ADMIN') {
       console.error("[PATCH /api/store] Unauthorized user:", user);
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const formData = await request.formData();
-    const data = JSON.parse(formData.get("data") as string);
-    const logoFile = formData.get("logo") as File | null;
+    let data;
+    const contentType = request.headers.get("content-type") || "";
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      data = JSON.parse(formData.get("data") as string);
+      const logoFile = formData.get("logo") as File | null;
+
+      if (logoFile) {
+        const fileName = `logo-${Date.now()}-${logoFile.name}`;
+        data.logo = await uploadImage(logoFile, "store", fileName);
+      }
+    } else {
+      data = await request.json();
+    }
 
     // Buscar a loja
     const store = await db.store.findFirst();
@@ -30,13 +34,6 @@ export async function PATCH(request: NextRequest) {
     if (!store) {
       console.error("[PATCH /api/store] Store not found");
       return new NextResponse("Store not found", { status: 404 });
-    }
-
-    // Upload do logo se fornecido
-    let logo = data.logo;
-    if (logoFile) {
-      const fileName = `logo-${Date.now()}-${logoFile.name}`;
-      logo = await uploadImage(logoFile, "store", fileName);
     }
 
     // Atualizar a loja
@@ -47,7 +44,7 @@ export async function PATCH(request: NextRequest) {
       data: {
         name: data.name,
         description: data.description,
-        logo: logo,
+        logo: data.logo,
         palette: data.palette,
         settings: data.settings && {
           email: data.settings.email,
@@ -61,7 +58,6 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
-    console.log("[PATCH /api/store] Store updated:", updatedStore);
     return NextResponse.json(updatedStore);
   } catch (error) {
     console.error("[PATCH /api/store] Error:", error);

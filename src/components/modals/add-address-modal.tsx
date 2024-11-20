@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AddressForm } from '@/components/address-form';
 import { toast } from '@/hooks/use-toast';
-import { Address } from '@/types';
 
 interface AddAddressModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (address: Omit<Address, 'id' | 'userId'>) => void;
+  onSuccess: (address: Omit<any, 'id' | 'userId'>) => void;
 }
 
 export function AddAddressModal({
@@ -17,7 +16,7 @@ export function AddAddressModal({
 }: AddAddressModalProps) {
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (data: Omit<Address, 'id' | 'userId'>) => {
+  const handleSubmit = async (data: Omit<any, 'id' | 'userId'>) => {
     try {
       setLoading(true);
       await onSuccess(data);

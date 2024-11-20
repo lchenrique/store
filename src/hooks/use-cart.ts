@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import apiClient from '@/services/api';
-import { Product } from "@/types";
+import { Product } from "@/services/types";
 
 export interface CartItem {
   id: string;
@@ -60,13 +60,13 @@ export const useCart = create<CartStore>()(
             newItems = [...state.items, item];
           }
 
-          syncCartWithServer(newItems);
+          // syncCartWithServer(newItems);
           return { items: newItems };
         }),
       removeItem: (id) =>
         set((state) => {
           const newItems = state.items.filter((item) => item.id !== id);
-          syncCartWithServer(newItems);
+          // syncCartWithServer(newItems);
           return { items: newItems };
         }),
       updateQuantity: (id, quantity) =>
@@ -74,7 +74,7 @@ export const useCart = create<CartStore>()(
           const newItems = state.items.map((item) =>
             item.id === id ? { ...item, quantity } : item
           );
-          syncCartWithServer(newItems);
+          // syncCartWithServer(newItems);
           return { items: newItems };
         }),
       clearCart: () => set({ items: [] }),
@@ -99,10 +99,10 @@ export const useCart = create<CartStore>()(
 );
 
 // Função auxiliar para sincronizar com o servidor
-async function syncCartWithServer(items: CartItem[]) {
-  try {
-    await apiClient.updateCart(items);
-  } catch (error) {
-    console.error('Failed to sync cart with server:', error);
-  }
-}
+// async function syncCartWithServer(items: CartItem[]) {
+//   try {
+//     await apiClient.updateCart(items as any);
+//   } catch (error) {
+//     console.error('Failed to sync cart with server:', error);
+//   }
+// }

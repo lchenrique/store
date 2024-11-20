@@ -2,14 +2,17 @@ import db from '@/lib/db';
 import { ProductsHeader } from './components/products-header';
 import { ProductsContent } from './components/products-content';
 import { Prisma } from '@prisma/client';
+import { MainPage } from '@/components/layout/main-page';
 
-export default async function ProductsPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
+
+export default async function ProductsPage(props: {
+  searchParams: SearchParams
 }) {
-  const minPrice = searchParams.minPrice ? Number(searchParams.minPrice) : undefined;
-  const maxPrice = searchParams.maxPrice ? Number(searchParams.maxPrice) : undefined;
+  const searchParams = await props.searchParams;
+  
+  const minPrice = typeof searchParams.minPrice === 'string' ? Number(searchParams.minPrice) : undefined;
+  const maxPrice = typeof searchParams.maxPrice === 'string' ? Number(searchParams.maxPrice) : undefined;
   const search = typeof searchParams.search === 'string' ? searchParams.search : undefined;
 
   const where: Prisma.ProductWhereInput = {
@@ -31,9 +34,9 @@ export default async function ProductsPage({
   });
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <MainPage>
       <ProductsHeader />
-      <ProductsContent 
+      <ProductsContent
         products={products}
         initialFilters={{
           minPrice: minPrice?.toString() || '',
@@ -41,6 +44,6 @@ export default async function ProductsPage({
           search: search || '',
         }}
       />
-    </div>
+    </MainPage>
   );
 }

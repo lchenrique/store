@@ -1,10 +1,10 @@
 # 🚀 StorePulse | E-commerce & Admin Platform
 
-Uma plataforma de e-commerce moderna e completa construída com Next.js 14, App Router, Supabase e Prisma. Inclui uma área de loja para clientes e um dashboard administrativo completo para gerenciamento de produtos, pedidos e clientes.
+Uma plataforma de e-commerce moderna e completa construída com Next.js 15, App Router, Supabase e Prisma. Inclui uma área de loja para clientes e um dashboard administrativo completo para gerenciamento de produtos, pedidos e clientes.
 
 ## 🚀 Tecnologias
 
-- [Next.js 14](https://nextjs.org/) - Framework React com App Router
+- [Next.js 15](https://nextjs.org/) - Framework React com App Router
 - [Supabase](https://supabase.io/) - Backend as a Service (Auth, Database, Storage)
 - [Prisma](https://www.prisma.io/) - ORM
 - [Tailwind CSS](https://tailwindcss.com/) - Framework CSS

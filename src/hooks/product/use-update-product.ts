@@ -49,6 +49,7 @@ export const useUpdateProduct = () => {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["admin-products"] });
         queryClient.invalidateQueries({ queryKey: ["products"] });
+        queryClient.invalidateQueries({ queryKey: ["store-products"] });
       },
     }
   );

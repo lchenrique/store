@@ -23,7 +23,7 @@ export function ProductCard({ product }: ProductCardProps) {
   // Garante que o ID está no formato UUID
   const formattedId = product.id.replace(/[^0-9a-fA-F-]/g, '');
 
-  async function addToCart() {
+  async function onAddToCart() {
     try {
       setIsLoading(true);
       
@@ -31,7 +31,7 @@ export function ProductCard({ product }: ProductCardProps) {
         id: formattedId,
         name: product.name,
         price: product.price,
-        image: product.images[0],
+        images: [product.images[0]],
         quantity: 1
       });
 
@@ -52,8 +52,15 @@ export function ProductCard({ product }: ProductCardProps) {
     }
   }
 
+  function formatPrice(price: number) {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(price);
+  }
+
   return (
-    <Card className="overflow-hidden border-delicate group">
+    <Card className="overflow-hidden border-delicate group flex flex-col">
       <Link href={`/products/${formattedId}`}>
         <div className="relative aspect-square bg-muted/50">
           <Image
@@ -64,39 +71,39 @@ export function ProductCard({ product }: ProductCardProps) {
           />
         </div>
       </Link>
-      <CardContent className="p-4">
+      <CardContent className="p-4 flex-1">
         <Link href={`/products/${formattedId}`}>
-          <h3 className="font-semibold hover:text-primary transition-colors">{product.name}</h3>
+          <h3 className="font-semibold hover:text-primary transition-colors truncate">{product.name}</h3>
         </Link>
-        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+        <p className="text-sm text-muted-foreground mt-2 line-clamp-2 h-10">
           {product.description}
         </p>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex items-center justify-between">
-        <span className="text-lg font-bold text-primary">
-          {new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-          }).format(product.price)}
-        </span>
-        <Button 
-          onClick={addToCart} 
-          size="sm" 
-          className="rounded-lg"
-          disabled={isLoading || product.stock === 0}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Adicionando...
-            </>
-          ) : (
-            <>
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              {product.stock === 0 ? 'Esgotado' : 'Adicionar'}
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-2 justify-between w-full">
+          <span className="text-lg font-bold text-primary">
+            {formatPrice(product.price)}
+          </span>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={onAddToCart}
+            disabled={isLoading || product.stock === 0}
+            className="flex items-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Adicionando...
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="h-4 w-4" />
+                {product.stock === 0 ? 'Esgotado' : 'Adicionar'}
+              </>
+            )}
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );

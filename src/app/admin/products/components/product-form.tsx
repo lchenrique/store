@@ -18,7 +18,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import Image from "next/image";
 import { AlertTriangle, X } from "lucide-react";
 import BackButton from "@/components/back-button";
-import { Product } from "@/@types/product";
+import type { Product } from "@/services/types";
 
 const productSchema = z.object({
   name: z
@@ -191,9 +191,9 @@ export function ProductForm({ product, onSubmit, isLoading, title, description }
                         ))}
                         <FormControl>
                           <ImageUpload
-                            value={field.value?.filter((image) => image instanceof File) || []}
+                            value={field.value?.filter((image): image is File => image instanceof File) || []}
                             onChange={(files) => {
-                              const existingUrls = field.value?.filter((image) => typeof image === "string") || [];
+                              const existingUrls = field.value?.filter((image): image is string => typeof image === "string") || [];
                               field.onChange([...existingUrls, ...files]);
                             }}
                             maxImages={5}

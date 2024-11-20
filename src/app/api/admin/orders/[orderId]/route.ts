@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
-import db  from '@/lib/db';
+import db from '@/lib/db';
+
+type Params = Promise<{ orderId: string }>
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { orderId: string } }
+  segmentData: { params: Params }
 ) {
+  const params = await segmentData.params
   try {
     const { status } = await req.json();
 

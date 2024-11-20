@@ -16,9 +16,9 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 ">{children}</main>
       <footer className="border-t py-8">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8  max-w-[1280px]">
           <div className="text-center text-sm text-muted-foreground">
             {new Date().getFullYear()} {store?.name}. All rights reserved.
           </div>

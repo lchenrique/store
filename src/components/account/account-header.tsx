@@ -7,23 +7,28 @@ import { useUser } from "@/hooks/use-user";
 import { LogoutConfirmation } from "@/components/logout-confirmation";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
+import { useLogout } from "@/hooks/use-logout";
 
 export function AccountHeader() {
   const router = useRouter();
   const { user } = useUser();
+  const {logout} = useLogout();
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await logout();
+      if (error) throw error;
+
       router.push('/auth/login');
       toast({
         title: 'Logout realizado com sucesso!',
         description: 'Até logo!',
       });
     } catch (error) {
+      console.error('[handleLogout] Error:', error);
       toast({
         title: 'Erro ao fazer logout',
-        description: 'Tente novamente.',
+        description: 'Tente novamente em alguns instantes.',
         variant: 'destructive',
       });
     }

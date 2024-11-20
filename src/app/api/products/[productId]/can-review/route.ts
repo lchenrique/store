@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import db from "@/lib/db";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { productId: string } }
-) {
+type Params = Promise<{ productId: string }>;
+
+export async function GET(req: Request,segmentData: { params: Params }) {
   try {
-    const supabase = createClient();
+    const { productId } = await segmentData.params;
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user || !user.id) {
@@ -17,7 +17,7 @@ export async function GET(
     // Verifica se o produto existe
     const product = await db.product.findUnique({
       where: {
-        id: params.productId,
+        id: productId,
       },
     });
 
@@ -43,7 +43,7 @@ export async function GET(
       where: {
         userId_productId: {
           userId: user.id,
-          productId: params.productId,
+          productId: productId,
         },
       },
     });
@@ -60,7 +60,7 @@ export async function GET(
     // Para usuários normais, verifica se comprou o produto
     const hasPurchased = await db.orderItem.findFirst({
       where: {
-        productId: params.productId,
+        productId: productId,
         order: {
           userId: user.id,
           status: "DELIVERED",

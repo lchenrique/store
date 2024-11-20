@@ -21,10 +21,11 @@ import {
 import { usePaletteStore } from "@/store/use-palette-store";
 import { useStoreMutations } from "@/hooks/store/use-store";
 import { palettes } from "@/config/themes";
+import { useStorePalette } from "@/hooks/store/use-store-palette";
 
 export function PaletteSwitcher() {
   const [open, setOpen] = useState(false);
-  const { updatePalette } = useStoreMutations();
+  const { updatePalette } = useStorePalette();
   const { currentPalette } = usePaletteStore();
 
  

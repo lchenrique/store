@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
 
+type Params = Promise<{ customerId: string }>;
+
 export async function DELETE(
   request: Request,
-  { params }: { params: { customerId: string } }
+  segmentData: { params: Params }
 ) {
   try {
+    const params = await segmentData.params;
     const { customerId } = params;
 
     // Verifica se o cliente existe
