@@ -8,35 +8,36 @@ import { Loading } from "@/components/loading";
 import { PaletteSwitcher } from "@/components/palette-switcher";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { ServerTheme } from "@/components/providers/server-theme";
+import db from "@/lib/db";
 
 const inter = Inter({ subsets: ["latin"] });
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: "Store",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const store = await db.store.findFirst();
+  const initialPalette = store?.palette || undefined;
+  console.log('Initial palette:', {initialPalette});  
+
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <head>
-        <ServerTheme />
-      </head>
       <body className={cn(
         inter.className,
         "min-h-screen bg-background antialiased"
       )}>
         <QueryProvider>
-
-          <ThemeProvider>
-            <Loading />
+          <ThemeProvider initialPalette={initialPalette}>
             <AuthProvider>
+              <Loading />
               {children}
               <Toaster />
             </AuthProvider>
           </ThemeProvider>
         </QueryProvider>
-
       </body>
     </html>
   );

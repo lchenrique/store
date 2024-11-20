@@ -14,12 +14,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { useStore } from "@/hooks/store/use-store";
 import SingleImageButton from "@/components/ui/single-image-button";
 import { Building2, Mail, Phone, Settings } from "lucide-react";
+import { useStoreMutations, useStoreQuery } from "@/hooks/store/use-store";
 
 const settingsSchema = z.object({
-  name: z.string().min(2).max(50),
+  name: z.string().min(0).max(50).optional(),
   description: z.string().optional(),
   logo: z.string().optional().nullable(),
   logoToUpload: z.instanceof(File).optional().nullable(),
@@ -43,7 +43,7 @@ interface SettingsFormProps {
 }
 
 export function SettingsForm({ store }: SettingsFormProps) {
-  const { updateSettings } = useStore();
+  const { updateSettings } = useStoreMutations();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 

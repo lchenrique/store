@@ -11,23 +11,29 @@ import { supabase } from "@/lib/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { LogoutConfirmation } from "@/components/logout-confirmation";
 import { PaletteSwitcher } from "../palette-switcher";
+import { useProfile } from "@/hooks/profile";
+import { useLogout } from "@/hooks/use-logout";
 
 export function HeaderAdmin() {
   const router = useRouter();
-  const { user } = useUser();
+  const { profile } = useProfile();
+  const {logout} = useLogout()
   
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await logout();
+      if (error) throw error;
+
       router.push('/auth/login');
       toast({
         title: 'Logout realizado com sucesso!',
         description: 'Até logo!',
       });
     } catch (error) {
+      console.error('[handleLogout] Error:', error);
       toast({
         title: 'Erro ao fazer logout',
-        description: 'Tente novamente.',
+        description: 'Tente novamente em alguns instantes.',
         variant: 'destructive',
       });
     }
@@ -48,7 +54,7 @@ export function HeaderAdmin() {
           </Button>
 
           <div className="flex items-center gap-2">
-            {user && (
+            {profile && (
               <div className="flex items-center gap-4">
                 <PaletteSwitcher />
                 <ThemeSwitcher />

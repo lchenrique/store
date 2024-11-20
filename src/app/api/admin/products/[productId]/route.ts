@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
 
-export async function DELETE(req: Request, { params }: { params: { productId: string } }) {
+type Params = Promise<{ productId: string }>
+
+export async function DELETE(
+  req: Request,
+  context: { params: Params }
+) {
   try {
+    const params = await context.params;
+    
     await db.product.delete({
       where: {
         id: params.productId,
@@ -16,13 +23,25 @@ export async function DELETE(req: Request, { params }: { params: { productId: st
   }
 }
 
-export async function GET(req: Request, { params }: { params: { productId: string } }) {
+export async function GET(
+  req: Request,
+  context: { params: Params }
+) {
   try {
+    const params = await context.params;
+    
     if (params.productId) {
       const product = await db.product.findUnique({
         where: {
           id: params.productId,
         },
+        include: {
+          reviews: {
+            include: {
+              user: true
+            }
+          }
+        }
       });
 
       if (!product) {
@@ -31,7 +50,15 @@ export async function GET(req: Request, { params }: { params: { productId: strin
 
       return NextResponse.json(product);
     } else {
-      const products = await db.product.findMany();
+      const products = await db.product.findMany({
+        include: {
+          reviews: {
+            include: {
+              user: true
+            }
+          }
+        }
+      });
       return NextResponse.json(products);
     }
   } catch (error) {
@@ -40,27 +67,32 @@ export async function GET(req: Request, { params }: { params: { productId: strin
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { productId: string } }) {
+export async function PATCH(
+  req: Request,
+  context: { params: Params }
+) {
   try {
+    const params = await context.params;
     const body = await req.json();
 
-    const product = {
-      name: body.name,
-      description: body.description,
-      price: Number(body.price),
-      images: body.images,
-      stock: Number(body.stock),
-      createdAt: body.createdAt,
-      updatedAt: body.updatedAt,
-    };
-
-    await db.product.update({
+    const product = await db.product.update({
       where: {
         id: params.productId,
       },
       data: {
-        ...product,
+        name: body.name,
+        description: body.description,
+        price: Number(body.price),
+        images: body.images,
+        stock: Number(body.stock),
       },
+      include: {
+        reviews: {
+          include: {
+            user: true
+          }
+        }
+      }
     });
 
     return NextResponse.json(product);

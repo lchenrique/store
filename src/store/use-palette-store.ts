@@ -7,7 +7,7 @@ const COOKIE_KEY = "store-palette"
 interface PaletteState {
   currentPalette: ColorPalette | null
   updatePalette: (palette: ColorPalette) => void
-  initializeFromServer: (paletteName: string | null) => void
+  initializeFromServer: (paletteNam?: string ) => void
 }
 
 // Função para aplicar o tema
@@ -54,7 +54,7 @@ export const usePaletteStore = create<PaletteState>((set) => {
    
       aplicarTema(palette);
     },
-    initializeFromServer: (paletteName: string | null) => {
+    initializeFromServer: (paletteName?: string ) => {
       if (!paletteName) return;
       
       const palette = palettes.find(p => p.name === paletteName);

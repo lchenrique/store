@@ -48,14 +48,14 @@ export default function ShopPage() {
   };
 
   return (
-    <div >
+    <div  >
       <Hero 
-        title="Presentes Especiais para Momentos Únicos"
+        title={<h1 >Presentes <span className="text-primary">Especiais</span> para Momentos <span className="text-primary leading-3">Únicos</span></h1>}
         subtitle="Descubra nossa seleção exclusiva de presentes para todas as ocasiões"
         imageUrl="https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=1920&auto=format&fit=crop"
       />
       
-      <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 max-w-[1280px]">
         {/* Hero Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -180,7 +180,7 @@ export default function ShopPage() {
                           {product.name}
                         </h3>
                         <p className="text-2xl font-bold text-primary">
-                          {formatPrice(product.price)}
+                          {formatPrice(String(product.price))}
                         </p>
                       </CardHeader>
                       <CardFooter>

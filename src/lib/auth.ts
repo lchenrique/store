@@ -23,6 +23,8 @@ export const supabase = createBrowserClient(supabaseUrl, supabaseKey, {
     storageKey,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    flowType: 'pkce',
+    debug: process.env.NODE_ENV === 'development',
     storage: {
       getItem: (key) => {
         if (typeof window === 'undefined') return null;
@@ -62,8 +64,19 @@ export async function signIn(email: string, password: string) {
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   
-  // Limpar localStorage
+  // Limpar todos os tokens e dados da sessão
   localStorage.removeItem(storageKey);
+  
+  // Limpar todos os cookies relacionados ao Supabase
+  const cookies = document.cookie.split(';');
+  const projectId = getProjectId();
+  
+  cookies.forEach(cookie => {
+    const cookieName = cookie.split('=')[0].trim();
+    if (cookieName.startsWith(`sb-${projectId}`)) {
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+    }
+  });
   
   return { error };
 }

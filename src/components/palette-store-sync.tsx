@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { useStoreMutations } from '@/hooks/store/use-store';
 import { usePaletteStore } from '@/store/use-palette-store';
+import { useStorePalette } from '@/hooks/store/use-store-palette';
 
 export function PaletteStoreSync() {
   const currentPalette = usePaletteStore((state) => state.currentPalette);
-  const { updatePalette } = useStoreMutations();
+  const { updatePalette } = useStorePalette();
   const lastPalette = useRef<string | null>(null);
   const isFirstRender = useRef(true);
   const isInitialSync = useRef(true);

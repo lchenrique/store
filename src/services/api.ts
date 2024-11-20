@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
+import { headers } from 'next/headers';
 import {
   Review,
   ReviewInput,
@@ -28,7 +29,9 @@ const supabase = createClient(
 );
 
 const axiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: typeof window === 'undefined' 
+    ? process.env.NEXT_PUBLIC_APP_URL 
+    : '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -44,10 +47,44 @@ axiosInstance.interceptors.request.use(async (config) => {
   return config;
 });
 
+let isRefreshing = false;
+let failedQueue: { resolve: Function; reject: Function }[] = [];
+let isRedirecting = false;
+
+const processQueue = (error: any) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve();
+    }
+  });
+  
+  failedQueue = [];
+};
+
+const clearSession = async () => {
+  // Limpa os cookies
+  if (typeof document !== 'undefined') {
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+  }
+  
+  // Limpa o localStorage
+  if (typeof window !== 'undefined') {
+    localStorage.clear();
+  }
+};
+
 // Interceptor para tratamento de erros
 axiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
     // Log detalhado do erro
     console.error('API Error:', {
       url: error.config?.url,
@@ -57,16 +94,65 @@ axiosInstance.interceptors.response.use(
       error: error.message
     });
 
+    // Se for erro 401 e não for uma tentativa de refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Se já estiver refreshing, adiciona à fila
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(() => axiosInstance(originalRequest))
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Tenta fazer refresh da sessão
+        const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError) throw refreshError;
+        
+        if (session) {
+          // Atualiza o token no request original
+          originalRequest.headers.Authorization = `Bearer ${session.access_token}`;
+          
+          // Processa a fila de requests que falharam
+          processQueue(null);
+          
+          return axiosInstance(originalRequest);
+        }
+      } catch (refreshError) {
+        processQueue(refreshError);
+        
+        // Se não conseguir fazer refresh e ainda não estiver redirecionando
+        if (!isRedirecting) {
+          isRedirecting = true;
+          
+          // Limpa a sessão
+          await clearSession();
+          await supabase.auth.signOut();
+          
+          // Se estiver no cliente, redireciona
+          if (typeof window !== 'undefined') {
+            window.location.href = '/auth/login?expired=true';
+          }
+        }
+        
+        return Promise.reject(new Error('Sessão expirada. Por favor, faça login novamente.'));
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     // Customiza o erro baseado na resposta
     if (error.response) {
-      // Erro com resposta do servidor (4xx, 5xx)
       const message = error.response.data?.message || 'Ocorreu um erro inesperado';
       const status = error.response.status;
 
       // Trata erros específicos
       switch (status) {
-        case 401:
-          return Promise.reject(new Error('Sessão expirada. Por favor, faça login novamente.'));
         case 403:
           return Promise.reject(new Error('Você não tem permissão para realizar esta ação.'));
         case 404:
@@ -82,11 +168,9 @@ axiosInstance.interceptors.response.use(
           return Promise.reject(new Error(message));
       }
     } else if (error.request) {
-      // Erro sem resposta (problemas de rede)
       return Promise.reject(new Error('Não foi possível conectar ao servidor. Verifique sua conexão.'));
     }
 
-    // Outros erros
     return Promise.reject(error);
   }
 );
@@ -94,62 +178,98 @@ axiosInstance.interceptors.response.use(
 // API Client
 const apiClient = {
   // Reviews
-  getProductReviews: (productId: string) => 
-    axiosInstance.get<Review[]>(`/products/${productId}/reviews`).then(response => response.data),
+  getProductReviews: async (productId: string) => {
+    const response = await axiosInstance.get<Review[]>(`/products/${productId}/reviews`);
+    return response.data;
+  },
   
-  canReviewProduct: (productId: string) =>
-    axiosInstance.get<{ canReview: boolean }>(`/products/${productId}/can-review`).then(response => response.data),
+  canReviewProduct: async (productId: string) => {
+    const response = await axiosInstance.get<{ canReview: boolean }>(`/products/${productId}/can-review`);
+    return response.data;
+  },
   
-  createReview: (data: ReviewInput) =>
-    axiosInstance.post<Review>(`/products/${data.productId}/reviews`, data).then(response => response.data),
+  createReview: async (data: ReviewInput) => {
+    const response = await axiosInstance.post<Review>(`/products/${data.productId}/reviews`, data);
+    return response.data;
+  },
 
   // Favorites
-  getFavorites: () =>
-    axiosInstance.get<FavoriteItem[]>('/favorites').then(response => response.data),
+  getFavorites: async () => {
+    const response = await axiosInstance.get<FavoriteItem[]>('/favorites');
+    return response.data;
+  },
   
-  addFavorite: (productId: string) =>
-    axiosInstance.post('/favorites', { productId }).then(response => response.data),
+  addFavorite: async (productId: string) => {
+    const response = await axiosInstance.post('/favorites', { productId });
+    return response.data;
+  },
   
-  removeFavorite: (favoriteId: string) =>
-    axiosInstance.delete(`/favorites/${favoriteId}`).then(response => response.data),
+  removeFavorite: async (favoriteId: string) => {
+    const response = await axiosInstance.delete(`/favorites/${favoriteId}`);
+    return response.data;
+  },
 
-  getFavoriteStatus: (productId: string) =>
-    axiosInstance.get<{ isFavorite: boolean }>(`/favorites/status`, { params: { productId } }).then(response => response.data),
+  getFavoriteStatus: async (productId: string) => {
+    const response = await axiosInstance.get<{ isFavorite: boolean }>(`/favorites`, { params: { productId } });
+    return response.data;
+  },
 
-  toggleFavorite: (productId: string) =>
-    axiosInstance.post<{ isFavorite: boolean }>('/favorites/toggle', { productId }).then(response => response.data),
+  toggleFavorite: async (productId: string) => {
+    const response = await axiosInstance.post<{ isFavorite: boolean }>('/favorites', { productId });
+    return response.data;
+  },
 
   // Cart
-  getCart: () =>
-    axiosInstance.get<{ items: CartItem[] }>('/cart').then(response => response.data),
+  getCart: async () => {
+    const response = await axiosInstance.get<{ items: CartItem[] }>('/cart');
+    return response.data;
+  },
   
-  updateCart: (items: CartItem[]) =>
-    axiosInstance.put('/cart', { items }).then(response => response.data),
+  updateCart: async (items: CartItem[]) => {
+    const response = await axiosInstance.put('/cart', { items });
+    return response.data;
+  },
   
-  addToCart: (productId: string, quantity: number) =>
-    axiosInstance.post('/cart', { productId, quantity }).then(response => response.data),
+  addToCart: async (productId: string, quantity: number) => {
+    const response = await axiosInstance.post('/cart', { productId, quantity });
+    return response.data;
+  },
   
-  removeFromCart: (productId: string) =>
-    axiosInstance.delete(`/cart/${productId}`).then(response => response.data),
+  removeFromCart: async (productId: string) => {
+    const response = await axiosInstance.delete(`/cart/${productId}`);
+    return response.data;
+  },
   
-  updateCartItemQuantity: (productId: string, quantity: number) =>
-    axiosInstance.patch(`/cart/${productId}`, { quantity }).then(response => response.data),
+  updateCartItemQuantity: async (productId: string, quantity: number) => {
+    const response = await axiosInstance.patch(`/cart/${productId}`, { quantity });
+    return response.data;
+  },
 
   // Address
-  getAddresses: () =>
-    axiosInstance.get<Address[]>('/addresses').then(response => response.data),
+  getAddresses: async () => {
+    const response = await axiosInstance.get<Address[]>('/addresses');
+    return response.data;
+  },
   
-  createAddress: (address: AddressInput) =>
-    axiosInstance.post<Address>('/addresses', address).then(response => response.data),
+  createAddress: async (address: AddressInput) => {
+    const response = await axiosInstance.post<Address>('/addresses', address);
+    return response.data;
+  },
   
-  updateAddress: (id: string, address: AddressInput) =>
-    axiosInstance.put<Address>(`/addresses/${id}`, address).then(response => response.data),
+  updateAddress: async (id: string, address: AddressInput) => {
+    const response = await axiosInstance.put<Address>(`/addresses/${id}`, address);
+    return response.data;
+  },
   
-  deleteAddress: (id: string) =>
-    axiosInstance.delete(`/addresses/${id}`).then(response => response.data),
+  deleteAddress: async (id: string) => {
+    const response = await axiosInstance.delete(`/addresses/${id}`);
+    return response.data;
+  },
   
-  getAddressByCep: (cep: string) =>
-    axiosInstance.get<Address>(`/address/cep?cep=${cep}`).then(response => response.data),
+  getAddressByCep: async (cep: string) => {
+    const response = await axiosInstance.get<Address>(`/address/cep?cep=${cep}`);
+    return response.data;
+  },
 
   // CEP
   getAddressByCEP: async (cep: string): Promise<{
@@ -166,178 +286,266 @@ const apiClient = {
   },
 
   // Orders
-  getOrders: () =>
-    axiosInstance.get<Order[]>('/orders').then(response => response.data),
+  getOrders: async () => {
+    const response = await axiosInstance.get<Order[]>('/orders');
+    return response.data;
+  },
   
-  createOrder: (orderData: OrderInput) =>
-    axiosInstance.post<Order>('/orders', orderData).then(response => response.data),
+  createOrder: async (orderData: OrderInput) => {
+    const response = await axiosInstance.post<Order>('/orders', orderData);
+    return response.data;
+  },
   
-  cancelOrder: (orderId: string) =>
-    axiosInstance.post(`/orders/${orderId}/cancel`).then(response => response.data),
+  cancelOrder: async (orderId: string) => {
+    const response = await axiosInstance.post(`/orders/${orderId}/cancel`);
+    return response.data;
+  },
   
   // Upload
-  upload: (file: File, path: string) => {
+  upload: async (file: File, path: string) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('path', path);
     
-    return axiosInstance.post('/upload', formData, {
+    const response = await axiosInstance.post('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    }).then(response => response.data);
+    });
+    return response.data;
   },
 
   // Store
-  getStore: () =>
-    axiosInstance.get<Store>('/store').then(response => response.data),
+  getStore: async () => {
+    const response = await axiosInstance.get<Store>('/store');
+    return response.data;
+  },
 
-  updateStore: (data: Partial<Store>) =>
-    axiosInstance.patch<Store>('/store', data).then(response => response.data),
+  getPalette: async () => {
+    const response = await axiosInstance.get<Store["palette"]>('/store/palette');
+    return response.data;
+  },
 
-  updateStorePalette: (palette: string) =>
-    axiosInstance.patch<Store>('/store', { palette }).then(response => response.data),
+  updateStore: async (data: Partial<Store>) => {
+    const response = await axiosInstance.patch<Store>('/store', data);
+    return response.data;
+  },
 
-  updateStoreLogo: (logo: File) => {
+  updateStorePalette: async (palette: string) => {
+    const response = await axiosInstance.patch<Store>('/store', { palette });
+    return response.data;
+  },
+
+  updateStoreLogo: async (logo: File) => {
     const formData = new FormData();
     formData.append('logo', logo);
-    return axiosInstance.patch<Store>('/store', formData, {
+    const response = await axiosInstance.patch<Store>('/store', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-    }).then(response => response.data);
+    });
+    return response.data;
   },
 
   // Store Products
-  getStoreProduct: (id: string) =>
-    axiosInstance.get<Product>(`/products/${id}`).then(response => response.data),
+  getStoreProduct: async (id: string) => {
+    const response = await axiosInstance.get<Product>(`/products/${id}`);
+    return response.data;
+  },
 
-  getStoreProducts: (params?: StoreProductsParams) =>
-    axiosInstance.get<{ items: Product[]; total: number }>('/products', { params }).then(response => response.data),
+  getStoreProducts: async (params?: StoreProductsParams) => {
+    const response = await axiosInstance.get<{ items: Product[]; total: number }>('/products', { params });
+    return response.data;
+  },
 
   // Profile
-  getProfile: () =>
-    axiosInstance.get<UserProfile>('/user/profile').then(response => response.data),
+  getProfile: async () => {
+    const response = await axiosInstance.get<UserProfile>('/user/profile');
+    return response.data;
+  },
 
-  updateProfile: (data: ProfileData) =>
-    axiosInstance.put<UserProfile>('/user/profile', data).then(response => response.data),
+  updateProfile: async (data: ProfileData) => {
+    const response = await axiosInstance.put<UserProfile>('/user/profile', data);
+    return response.data;
+  },
 
   // Import/Export
-  importProducts: (products: any[]) =>
-    axiosInstance.post('/admin/products/import', { products }).then(response => response.data),
+  importProducts: async (products: any[]) => {
+    const response = await axiosInstance.post('/admin/products/import', { products });
+    return response.data;
+  },
 
-  exportProducts: () =>
-    axiosInstance.get('/admin/products/export').then(response => response.data),
+  exportProducts: async () => {
+    const response = await axiosInstance.get('/admin/products/export');
+    return response.data;
+  },
 
   // Auth
   auth: {
-    getSession: () => axiosInstance.get('/auth/session').then(response => response.data),
-    signIn: (credentials: { email: string; password: string }) =>
-      axiosInstance.post('/auth/signin', credentials).then(response => response.data),
-    signUp: (credentials: { email: string; password: string }) =>
-      axiosInstance.post('/auth/signup', credentials).then(response => response.data),
-    signOut: () => axiosInstance.post('/auth/signout').then(response => response.data),
-    resetPassword: (email: string) =>
-      axiosInstance.post('/auth/reset-password', { email }).then(response => response.data),
-    updatePassword: (password: string) =>
-      axiosInstance.post('/auth/update-password', { password }).then(response => response.data),
+    getSession: async () => {
+      const response = await axiosInstance.get('/auth/session');
+      return response.data;
+    },
+    signIn: async (credentials: { email: string; password: string }) => {
+      const response = await axiosInstance.post('/auth/signin', credentials);
+      return response.data;
+    },
+    signUp: async (credentials: { email: string; password: string }) => {
+      const response = await axiosInstance.post('/auth/signup', credentials);
+      return response.data;
+    },
+    signOut: async () => {
+      const response = await axiosInstance.post('/auth/signout');
+      return response.data;
+    },
+    resetPassword: async (email: string) => {
+      const response = await axiosInstance.post('/auth/reset-password', { email });
+      return response.data;
+    },
+    updatePassword: async (password: string) => {
+      const response = await axiosInstance.post('/auth/update-password', { password });
+      return response.data;
+    },
   },
 
   // Admin API
   admin: {
     // Dashboard
-    getDashboardStats: () =>
-      axiosInstance.get<AdminDashboardStats>('/admin/dashboard').then(response => response.data),
+    getDashboardStats: async () => {
+      const response = await axiosInstance.get<AdminDashboardStats>('/admin/dashboard');
+      return response.data;
+    },
 
     // Products
-    getProducts: (params?: { page?: number; limit?: number; search?: string; category?: string; sort?: string; order?: 'asc' | 'desc' }) =>
-      axiosInstance.get<{ items: AdminProduct[]; total: number }>('/admin/products', { params }).then(response => response.data),
+    getProducts: async (params?: { page?: number; limit?: number; search?: string; category?: string; sort?: string; order?: 'asc' | 'desc' }) => {
+      const response = await axiosInstance.get<{ items: AdminProduct[]; total: number }>('/admin/products', { params });
+      return response.data;
+    },
     
-    getProduct: (id: string) =>
-      axiosInstance.get<AdminProduct>(`/admin/products/${id}`).then(response => response.data),
+    getProduct: async (id: string) => {
+      const response = await axiosInstance.get<AdminProduct>(`/admin/products/${id}`);
+      return response.data;
+    },
     
-    createProduct: (data: AdminProductInput) =>
-      axiosInstance.post<AdminProduct>('/admin/products', data).then(response => response.data),
+    createProduct: async (data: AdminProductInput) => {
+      const response = await axiosInstance.post<AdminProduct>('/admin/products', data);
+      return response.data;
+    },
     
-    updateProduct: (id: string, data: Partial<AdminProductInput> & {images?: string[]}) =>
-      axiosInstance.patch<AdminProduct>(`/admin/products/${id}`, data).then(response => response.data),
+    updateProduct: async (id: string, data: Partial<AdminProductInput> & {images?: string[]}) => {
+      const response = await axiosInstance.patch<AdminProduct>(`/admin/products/${id}`, data);
+      return response.data;
+    },
     
-    deleteProduct: (id: string) =>
-      axiosInstance.delete(`/admin/products/${id}`).then(response => response.data),
+    deleteProduct: async (id: string) => {
+      const response = await axiosInstance.delete(`/admin/products/${id}`);
+      return response.data;
+    },
     
-    uploadProductImage: (id: string, file: File) => {
+    uploadProductImage: async (id: string, file: File) => {
       const formData = new FormData();
       formData.append('image', file);
-      return axiosInstance.post(`/admin/products/${id}/image`, formData, {
+      const response = await axiosInstance.post(`/admin/products/${id}/image`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-      }).then(response => response.data);
+      });
+      return response.data;
     },
 
     // Categories
-    getCategories: (params?: { page?: number; limit?: number; search?: string }) =>
-      axiosInstance.get<{ items: AdminCategory[]; total: number }>('/admin/categories', { params }).then(response => response.data),
+    getCategories: async (params?: { page?: number; limit?: number; search?: string }) => {
+      const response = await axiosInstance.get<{ items: AdminCategory[]; total: number }>('/admin/categories', { params });
+      return response.data;
+    },
     
-    getCategory: (id: string) =>
-      axiosInstance.get<AdminCategory>(`/admin/categories/${id}`).then(response => response.data),
+    getCategory: async (id: string) => {
+      const response = await axiosInstance.get<AdminCategory>(`/admin/categories/${id}`);
+      return response.data;
+    },
     
-    createCategory: (data: AdminCategoryInput) =>
-      axiosInstance.post<AdminCategory>('/admin/categories', data).then(response => response.data),
+    createCategory: async (data: AdminCategoryInput) => {
+      const response = await axiosInstance.post<AdminCategory>('/admin/categories', data);
+      return response.data;
+    },
     
-    updateCategory: (id: string, data: Partial<AdminCategoryInput>) =>
-      axiosInstance.put<AdminCategory>(`/admin/categories/${id}`, data).then(response => response.data),
+    updateCategory: async (id: string, data: Partial<AdminCategoryInput>) => {
+      const response = await axiosInstance.put<AdminCategory>(`/admin/categories/${id}`, data);
+      return response.data;
+    },
     
-    deleteCategory: (id: string) =>
-      axiosInstance.delete(`/admin/categories/${id}`).then(response => response.data),
+    deleteCategory: async (id: string) => {
+      const response = await axiosInstance.delete(`/admin/categories/${id}`);
+      return response.data;
+    },
 
     // Orders
-    getOrders: (params?: { 
+    getOrders: async (params?: { 
       page?: number; 
       limit?: number; 
       status?: Order['status']; 
       startDate?: string;
       endDate?: string;
-    }) =>
-      axiosInstance.get<{ items: Order[]; total: number }>('/admin/orders', { params }).then(response => response.data),
+    }) => {
+      const response = await axiosInstance.get<{ items: Order[]; total: number }>('/admin/orders', { params });
+      return response.data;
+    },
     
-    getOrder: (id: string) =>
-      axiosInstance.get<Order>(`/admin/orders/${id}`).then(response => response.data),
+    getOrder: async (id: string) => {
+      const response = await axiosInstance.get<Order>(`/admin/orders/${id}`);
+      return response.data;
+    },
     
-    updateOrderStatus: (id: string, status: Order['status']) =>
-      axiosInstance.patch(`/admin/orders/${id}/status`, { status }).then(response => response.data),
+    updateOrderStatus: async (id: string, status: Order['status']) => {
+      const response = await axiosInstance.patch(`/admin/orders/${id}/status`, { status });
+      return response.data;
+    },
 
     // Users
-    getUsers: (params?: { page?: number; limit?: number; search?: string; role?: AdminUser['role'] }) =>
-      axiosInstance.get<{ items: AdminUser[]; total: number }>('/admin/users', { params }).then(response => response.data),
+    getUsers: async (params?: { page?: number; limit?: number; search?: string; role?: AdminUser['role'] }) => {
+      const response = await axiosInstance.get<{ items: AdminUser[]; total: number }>('/admin/users', { params });
+      return response.data;
+    },
     
-    getUser: (id: string) =>
-      axiosInstance.get<AdminUser>(`/admin/users/${id}`).then(response => response.data),
+    getUser: async (id: string) => {
+      const response = await axiosInstance.get<AdminUser>(`/admin/users/${id}`);
+      return response.data;
+    },
     
-    updateUserRole: (id: string, role: AdminUser['role']) =>
-      axiosInstance.patch(`/admin/users/${id}/role`, { role }).then(response => response.data),
+    updateUserRole: async (id: string, role: AdminUser['role']) => {
+      const response = await axiosInstance.patch(`/admin/users/${id}/role`, { role });
+      return response.data;
+    },
     
-    deleteUser: (id: string) =>
-      axiosInstance.delete(`/admin/users/${id}`).then(response => response.data),
+    deleteUser: async (id: string) => {
+      const response = await axiosInstance.delete(`/admin/users/${id}`);
+      return response.data;
+    },
 
     // Analytics
-    getOrderAnalytics: (params: { startDate: string; endDate: string }) =>
-      axiosInstance.get<{
+    getOrderAnalytics: async (params: { startDate: string; endDate: string }) => {
+      const response = await axiosInstance.get<{
         totalOrders: number;
         totalRevenue: number;
         averageOrderValue: number;
         ordersByStatus: Record<Order['status'], number>;
-      }>('/admin/analytics/orders', { params }).then(response => response.data),
+      }>('/admin/analytics/orders', { params });
+      return response.data;
+    },
     
-    getProductAnalytics: (params: { startDate: string; endDate: string }) =>
-      axiosInstance.get<{
+    getProductAnalytics: async (params: { startDate: string; endDate: string }) => {
+      const response = await axiosInstance.get<{
         totalSales: number;
         topProducts: { id: string; name: string; sales: number; revenue: number }[];
         salesByCategory: { category: string; sales: number; revenue: number }[];
-      }>('/admin/analytics/products', { params }).then(response => response.data),
+      }>('/admin/analytics/products', { params });
+      return response.data;
+    },
     
-    getUserAnalytics: (params: { startDate: string; endDate: string }) =>
-      axiosInstance.get<{
+    getUserAnalytics: async (params: { startDate: string; endDate: string }) => {
+      const response = await axiosInstance.get<{
         newUsers: number;
         activeUsers: number;
         usersByRole: Record<AdminUser['role'], number>;
-      }>('/admin/analytics/users', { params }).then(response => response.data),
+      }>('/admin/analytics/users', { params });
+      return response.data;
+    },
   },
 };
 

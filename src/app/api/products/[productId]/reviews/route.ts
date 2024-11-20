@@ -2,12 +2,17 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import db from "@/lib/db";
 
+type Params = Promise<{ productId: string }>;
+
 export async function POST(
   req: Request,
-  { params }: { params: { productId: string } }
+  segmentData: { params: Params }
 ) {
   try {
-    const supabase = createClient();
+    const params = await segmentData.params;
+    const { productId } = params;
+    
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user || !user.id) {
@@ -24,7 +29,7 @@ export async function POST(
     // Verifica se o produto existe
     const product = await db.product.findUnique({
       where: {
-        id: params.productId,
+        id: productId,
       },
     });
 
@@ -50,7 +55,7 @@ export async function POST(
       where: {
         userId_productId: {
           userId: user.id,
-          productId: params.productId,
+          productId: productId,
         },
       },
     });
@@ -66,7 +71,7 @@ export async function POST(
           rating,
           comment,
           userId: user.id,
-          productId: params.productId,
+          productId: productId,
         },
         include: {
           user: {
@@ -77,14 +82,14 @@ export async function POST(
         },
       });
 
-      await updateProductRating(params.productId);
+      await updateProductRating(productId);
       return NextResponse.json(review);
     }
 
     // Para usuários normais, verifica se comprou o produto
     const hasPurchased = await db.orderItem.findFirst({
       where: {
-        productId: params.productId,
+        productId: productId,
         order: {
           userId: user.id,
           status: "DELIVERED",
@@ -105,7 +110,7 @@ export async function POST(
         rating,
         comment,
         userId: user.id,
-        productId: params.productId,
+        productId: productId,
       },
       include: {
         user: {
@@ -116,7 +121,7 @@ export async function POST(
       },
     });
 
-    await updateProductRating(params.productId);
+    await updateProductRating(productId);
     return NextResponse.json(review);
   } catch (error) {
     console.log("[REVIEW_POST]", error);
@@ -148,12 +153,15 @@ async function updateProductRating(productId: string) {
 
 export async function GET(
   req: Request,
-  { params }: { params: { productId: string } }
+  segmentData: { params: Params }
 ) {
   try {
+    const params = await segmentData.params;
+    const { productId } = params;
+    
     const reviews = await db.review.findMany({
       where: {
-        productId: params.productId,
+        productId: productId,
       },
       orderBy: {
         createdAt: "desc",

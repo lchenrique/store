@@ -1,7 +1,7 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useQuery } from "../use-query";
-import type { Product } from "@/@types/product";
 import apiClient from '@/services/api';
+import { Product } from "@/services/types";
 
 interface ProductsParams {
   search?: string;

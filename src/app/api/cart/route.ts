@@ -4,38 +4,38 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user?.id) {
       return NextResponse.json({ items: [] });
     }
 
-    // Busca o carrinho do usuário no banco com os produtos
-    const cartItems = await db.cartItem.findMany({
-      where: {
-        user: {
-          email: user.email
-        }
-      },
-      include: {
-        product: true
-      }
-    });
+    // // Busca o carrinho do usuário no banco com os produtos
+    // const cartItems = await db.cartItem.findMany({
+    //   where: {
+    //     user: {
+    //       email: user.email
+    //     }
+    //   },
+    //   include: {
+    //     product: true
+    //   }
+    // });
 
-    // Filtra itens com produtos válidos
-    const validCartItems = cartItems
-      .filter(item => item.product !== null)
-      .map(item => ({
-        id: item.productId,
-        quantity: item.quantity,
-        price: item.product?.price || item.price,
-        name: item.product?.name,
-        image: item.product?.images[0]
-      }));
+    // // Filtra itens com produtos válidos
+    // const validCartItems = cartItems
+    //   .filter(item => item.product !== null)
+    //   .map(item => ({
+    //     id: item.productId,
+    //     quantity: item.quantity,
+    //     price: item.product?.price || item.price,
+    //     name: item.product?.name,
+    //     image: item.product?.images[0]
+    //   }));
 
     return NextResponse.json({
-      items: validCartItems
+      items: []
     });
   } catch (error) {
     console.error('Error in GET /api/cart:', error);
@@ -45,7 +45,7 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user?.id) {
@@ -106,7 +106,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user?.id) {

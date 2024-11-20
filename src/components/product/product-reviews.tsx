@@ -8,12 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Star } from "lucide-react";
 import { useProductReviews } from "@/hooks/use-product-reviews";
+import type { Review as ApiReview } from '@/services/types';
 
-interface Review {
-  id: string;
-  rating: number;
-  comment: string;
-  createdAt: string;
+interface ReviewWithUser extends ApiReview {
   user: {
     name: string | null;
   };
@@ -22,7 +19,7 @@ interface Review {
 interface ProductReviewsProps {
   productId: string;
   user: User | null;
-  initialReviews?: Review[];
+  initialReviews?: ReviewWithUser[];
 }
 
 export function ProductReviews({ productId, user, initialReviews = [] }: ProductReviewsProps) {
@@ -129,7 +126,7 @@ export function ProductReviews({ productId, user, initialReviews = [] }: Product
               Nenhuma avaliação ainda. Seja o primeiro a avaliar!
             </p>
           ) : (
-            reviews.map((review: Review) => (
+            reviews.map((review: ReviewWithUser) => (
               <div key={review.id} className="space-y-2 border-b pb-4 last:border-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">

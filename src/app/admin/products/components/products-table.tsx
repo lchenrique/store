@@ -34,20 +34,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
+import { Product } from "@/services/types";
 
-interface Product {
-  id: string;
-  name: string;
-  price: string;
-  stock: string;
-  createdAt: string;
-  updatedAt: string;
-  images?: string[];
-}
+
 
 interface ProductsTableProps {
   products: Product[];
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 export function ProductsTable({ products, onRefresh }: ProductsTableProps) {
@@ -78,7 +71,7 @@ export function ProductsTable({ products, onRefresh }: ProductsTableProps) {
         description: "O produto foi excluído com sucesso.",
       });
 
-      onRefresh();
+      onRefresh?.();
     } catch (error) {
       console.error("Erro ao excluir produto:", error);
       toast({
@@ -152,7 +145,7 @@ export function ProductsTable({ products, onRefresh }: ProductsTableProps) {
                 </TableCell>
                 <TableCell className="font-medium">{product.name}</TableCell>
                 <TableCell className="text-right">
-                  {formatPrice(product.price)}
+                  {formatPrice(String(product.price))}
                 </TableCell>
                 <TableCell className="text-center">{product.stock}</TableCell>
                 <TableCell className="hidden md:table-cell text-muted-foreground">

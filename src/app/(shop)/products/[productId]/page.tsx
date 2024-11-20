@@ -16,22 +16,23 @@ import { FavoriteButton } from "../components/favorite-button";
 import { ProductReviews } from "@/components/product/product-reviews";
 import { mapSupabaseUser } from "@/lib/user";
 import { createClient } from "@/lib/supabase/server";
+import { MainPage } from "@/components/layout/main-page";
 
 interface Review {
   id: string;
   rating: number;
   comment: string;
   createdAt: string;
+  userId: string;
+  productId: string;
   user: {
     name: string | null;
   };
 }
 
-interface ProductPageProps {
-  params: {
-    productId: string;
-  };
-}
+type Params = Promise<{
+  productId: string;
+}>
 
 async function getProduct(productId: string) {
   const product = await db.product.findUnique({
@@ -43,8 +44,11 @@ async function getProduct(productId: string) {
   return product;
 }
 
-export default async function ProductPage({ params }: ProductPageProps) {
-  const supabase = createClient()
+export default async function ProductPage(props: {
+  params: Params;
+}) {
+  const params = await props.params;
+  const supabase =  await createClient()
   const user = await supabase.auth.getUser()
   const product = await getProduct(params.productId);
 
@@ -80,14 +84,16 @@ export default async function ProductPage({ params }: ProductPageProps) {
       rating: review.rating,
       comment: review.comment ?? '',
       createdAt: review.createdAt.toISOString(),
+      userId: review.userId ?? '',
+      productId: review.productId,
       user: {
-        name:  review.user?.name ?? 'Usuário Anônimo'
+        name: review.user?.name ?? 'Usuário Anônimo'
       }
     }));
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <MainPage>
       <Button variant="ghost" className="mb-6 hover:bg-muted/50" asChild>
         <Link href="/products">
           <ChevronLeft className="h-4 w-4 mr-2" />
@@ -205,6 +211,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </div>
             </Card>
           )}
-    </div>
+    </MainPage>
   );
 }

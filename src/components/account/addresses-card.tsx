@@ -6,7 +6,6 @@ import { AddAddressModal } from "@/components/modals/add-address-modal";
 import { useState } from "react";
 import { useUserAddresses } from "@/hooks/use-user-addresses";
 import { toast } from "@/hooks/use-toast";
-import { Address } from "@/types";
 import { Trash2 } from "lucide-react";
 import { AddressesSkeleton } from "./skeletons/addresses-skeleton";
 
@@ -26,7 +25,7 @@ export function AddressesCard() {
     return <AddressesSkeleton />;
   }
 
-  const handleAddAddress = async (address: Omit<Address, 'id' | 'userId'>) => {
+  const handleAddAddress = async (address: Omit<any, 'id' | 'userId'>) => {
     await addAddress(address);
   };
 
@@ -65,7 +64,7 @@ export function AddressesCard() {
           </p>
         ) : (
           <div className="space-y-4">
-            {addresses.map((address) => (
+            {addresses.map((address:any) => (
               <div 
                 key={address.id} 
                 className="flex items-start justify-between p-4 rounded-lg border"

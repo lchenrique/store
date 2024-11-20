@@ -5,8 +5,8 @@ import { Users2, Store, ShieldCheck, Truck, Heart, Mail } from 'lucide-react';
 
 export default function AboutPage() {
   return (
-    <div className="bg-muted/40">
-      <div className="container mx-auto px-4 py-16">
+    <div className="bg-muted/40 pt-32">
+      <div className="container mx-auto px-4 py-16 max-w-[1280px]">
         {/* Hero Section */}
         <div className="flex flex-col items-center text-center mb-16">
           <h1 className="text-4xl font-bold mb-4">Sobre a Nossa Loja</h1>

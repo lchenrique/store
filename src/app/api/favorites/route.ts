@@ -10,24 +10,6 @@ type TokenUser = {
   role: string;
 };
 
-async function getUserFromToken(): Promise<TokenUser | null> {
-  try {
-    const cookieStore = cookies();
-    const authToken = cookieStore.get('sb-127-auth-token')?.value;
-    
-    
-    if (!authToken) {
-      return null;
-    }
-
-    const tokenData = JSON.parse(Buffer.from(authToken.replace('base64-', ''), 'base64').toString());
-    
-    return tokenData?.user || null;
-  } catch (error) {
-    console.error('Error parsing auth token:', error);
-    return null;
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {

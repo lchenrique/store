@@ -5,7 +5,7 @@ import type { SettingsForm } from "@/app/admin/settings/components/settings-form
 import { toast } from "@/hooks/use-toast";
 import { usePaletteStore } from "@/store/use-palette-store";
 import { palettes } from "@/config/themes";
-import { apiClient } from "@/services/api";
+import apiClient from "@/services/api";
 
 interface UpdateSettingsData {
   data: SettingsForm;
@@ -37,7 +37,7 @@ export function useStoreMutations() {
         logoUrl = await uploadImage(logo, "logo", logo.name);
       }
 
-      return apiClient.updateStore({ ...data, logo: logoUrl });
+      return apiClient.updateStore({ ...data, logo: logoUrl || undefined });
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(["store"], updated);
@@ -56,46 +56,7 @@ export function useStoreMutations() {
     },
   });
 
-  const updatePalette = useMutation({
-    mutationFn: async (palette: string) => {
-      // Otimista: atualiza o cache antes da chamada à API
-      const previousStore = queryClient.getQueryData(["store"]) as Store;
-      
-      // Se a paleta for a mesma, não faz nada
-      if (previousStore?.palette === palette) {
-        return previousStore;
-      }
-
-      // Atualiza o cache do React Query
-      queryClient.setQueryData(["store"], { ...previousStore, palette });
-
-      // Atualiza o tema visual via Zustand
-      const selectedPalette = palettes.find(p => p.name === palette);
-      if (selectedPalette) {
-        usePaletteStore.getState().updatePalette(selectedPalette);
-      }
-
-      try {
-        return await apiClient.updateStorePalette(palette);
-      } catch (error) {
-        // Em caso de erro, reverte o cache e o tema
-        queryClient.setQueryData(["store"], previousStore);
-        const previousPalette = palettes.find(p => p.name === previousStore?.palette);
-        if (previousPalette) {
-          usePaletteStore.getState().updatePalette(previousPalette);
-        }
-        throw error;
-      }
-    },
-    onError: (error) => {
-      console.error("[UPDATE_PALETTE_ERROR]", error);
-      toast({
-        title: "Erro ao atualizar paleta",
-        description: error.message || "Ocorreu um erro ao atualizar a paleta.",
-        variant: "destructive",
-      });
-    },
-  });
+  
 
   const updateLogo = useMutation({
     mutationFn: async (logo: File) => {
@@ -120,19 +81,8 @@ export function useStoreMutations() {
 
   return {
     updateSettings,
-    updatePalette,
     updateLogo,
   };
 }
 
-// Hook legado para compatibilidade
-export function useStore() {
-  const { store, isLoadingStore } = useStoreQuery();
-  const mutations = useStoreMutations();
 
-  return {
-    store,
-    isLoadingStore,
-    ...mutations,
-  };
-}

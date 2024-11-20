@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { prismadb } from "@/lib/prismadb";
+import db from "@/lib/db";
 import crypto from "crypto";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   try {
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     }
 
     // Verificar se o usuário existe
-    const user = await prismadb.user.findUnique({
+    const user = await db.user.findUnique({
       where: { email }
     });
 
@@ -31,30 +31,30 @@ export async function POST(req: Request) {
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hora
 
     // Salvar token no banco
-    await prismadb.user.update({
-      where: { email },
-      data: {
-        resetToken,
-        resetTokenExpiry
-      }
-    });
+    // await db.user.update({
+    //   where: { email },
+    //   data: {
+    //     resetToken,
+    //     resetTokenExpiry
+    //   }
+    // });
 
     // URL de reset (ajuste conforme seu domínio)
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${resetToken}`;
 
     // Enviar email
-    await resend.emails.send({
-      from: "Store <noreply@seudominio.com>",
-      to: email,
-      subject: "Recuperação de Senha",
-      html: `
-        <h1>Recuperação de Senha</h1>
-        <p>Você solicitou a recuperação de senha. Clique no link abaixo para redefinir sua senha:</p>
-        <a href="${resetUrl}">Redefinir Senha</a>
-        <p>Este link é válido por 1 hora.</p>
-        <p>Se você não solicitou a recuperação de senha, ignore este email.</p>
-      `
-    });
+    // await resend.emails.send({
+    //   from: "Store <noreply@seudominio.com>",
+    //   to: email,
+    //   subject: "Recuperação de Senha",
+    //   html: `
+    //     <h1>Recuperação de Senha</h1>
+    //     <p>Você solicitou a recuperação de senha. Clique no link abaixo para redefinir sua senha:</p>
+    //     <a href="${resetUrl}">Redefinir Senha</a>
+    //     <p>Este link é válido por 1 hora.</p>
+    //     <p>Se você não solicitou a recuperação de senha, ignore este email.</p>
+    //   `
+    // });
 
     return NextResponse.json({
       message: "Email de recuperação enviado com sucesso!"

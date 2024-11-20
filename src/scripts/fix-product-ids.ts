@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client')
-const { v4: uuidv4 } = require('uuid')
+import { PrismaClient } from '@prisma/client'
+import { randomUUID } from 'crypto'
 
 const prisma = new PrismaClient()
 
@@ -11,7 +11,7 @@ async function fixProductIds() {
     for (const product of products) {
       // Verificar se o ID não é um UUID válido
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(product.id)) {
-        const newId = uuidv4()
+        const newId = randomUUID()
         console.log(`Updating product ${product.id} to ${newId}`)
         
         try {

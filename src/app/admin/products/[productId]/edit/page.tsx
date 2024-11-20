@@ -32,15 +32,15 @@ export default function EditProductPage() {
         imagesToRemove,
       });
       toast({
-        title: "Success",
-        description: "Product updated successfully",
+        title: "Produto atualizado",
+        description: "O produto foi atualizado com sucesso.",
       });
       router.push("/admin/products");
       router.refresh();
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Something went wrong",
+        title: "Erro ao atualizar",
+        description: "Ocorreu um erro ao atualizar o produto.",
         variant: "destructive",
       });
     } finally {

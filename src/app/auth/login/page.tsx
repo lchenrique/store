@@ -11,18 +11,23 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
 import { Loader2, Lock, Mail } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { loginSchema, type LoginFormData } from '../types';
 import { useQueryClient } from '@tanstack/react-query';
 
 export default function LoginPage() {
   const queryClient = useQueryClient();
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
-
-  const form = useForm<LoginFormData>({
+  const searchParams = useSearchParams();
+  const [loading, setLoading] = useState(false);
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
@@ -31,21 +36,25 @@ export default function LoginPage() {
     mode: 'onChange',
   });
 
-  const onSubmit = async (dataForm: LoginFormData) => {
-    setLoading(true);
+  useEffect(() => {
+    // Verifica se a sessão expirou
+    const expired = searchParams.get('expired');
+    if (expired === 'true') {
+      toast({
+        title: 'Sessão expirada',
+        description: 'Por favor, faça login novamente.',
+        variant: 'destructive',
+      });
+    }
+  }, [searchParams]);
+
+  const onSubmit = async (data: LoginFormData) => {
     try {
-      const { data, error } = await signIn(dataForm.email, dataForm.password);
+      setLoading(true);
+      const { data: sessionData, error } = await signIn(data.email, data.password);
+      if (error) throw error;
 
-      if (error) {
-        toast({
-          title: 'Erro ao fazer login',
-          description: error.message,
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      if (!data.session) {
+      if (!sessionData.session) {
         toast({
           title: 'Erro ao fazer login',
           description: 'Não foi possível estabelecer a sessão',
@@ -54,21 +63,20 @@ export default function LoginPage() {
         return;
       }
 
+      // Limpa o cache e redireciona
+      await queryClient.refetchQueries({ queryKey: ['session'] });
+      await queryClient.refetchQueries({ queryKey: ['profile'] });
+      router.push('/');
 
       toast({
         title: 'Login realizado com sucesso!',
-        description: 'Bem-vindo(a) de volta!',
+        description: 'Bem-vindo de volta!',
       });
-
-      await queryClient.refetchQueries({ queryKey: ['profile'] });
-
-      router.push('/');
-
     } catch (error) {
-      console.error('Error during login:', error);
+      console.error('[LoginPage] Error:', error);
       toast({
         title: 'Erro ao fazer login',
-        description: 'Ocorreu um erro ao fazer login. Tente novamente.',
+        description: 'Verifique suas credenciais e tente novamente.',
         variant: 'destructive',
       });
     } finally {
@@ -78,22 +86,22 @@ export default function LoginPage() {
 
   return (
     <AuthLayout
-      title="Bem-vindo de volta"
-      subtitle="Entre com suas credenciais para acessar sua conta"
-      sidebarTitle="Faça login para acessar sua conta"
-      sidebarSubtitle="Gerencie seus produtos, pedidos e clientes em um só lugar."
+      title="Acessar sua conta"
+      subtitle="Entre com suas credenciais para continuar"
+      sidebarTitle="Área do usuário"
+      sidebarSubtitle="Acesse sua conta para gerenciar suas atividades na plataforma."
     >
       <FormCard>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <IconInput
             label="Email"
             type="email"
             id="email"
             icon={<Mail className="w-5 h-5" />}
-            error={form.formState.errors.email?.message}
+            error={errors.email?.message}
             disabled={loading}
             required
-            {...form.register('email')}
+            {...register('email')}
           />
 
           <IconInput
@@ -101,10 +109,10 @@ export default function LoginPage() {
             type="password"
             id="password"
             icon={<Lock className="w-5 h-5" />}
-            error={form.formState.errors.password?.message}
+            error={errors.password?.message}
             disabled={loading}
             required
-            {...form.register('password')}
+            {...register('password')}
           />
 
           <div className="flex items-center justify-between">
@@ -119,7 +127,7 @@ export default function LoginPage() {
           <Button
             type="submit"
             className="w-full"
-            disabled={loading || !form.formState.isValid}
+            disabled={loading || !errors}
           >
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

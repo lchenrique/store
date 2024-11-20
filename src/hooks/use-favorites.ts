@@ -2,11 +2,12 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "./use-user";
-import { Product } from "@/types";
+import { Product } from "@/services/types";
 import apiClient from '@/services/api';
 
 interface FavoriteProduct extends Product {
   favoriteId: string;
+  id: string;
 }
 
 export function useFavorites() {
@@ -21,6 +22,7 @@ export function useFavorites() {
       const data = await apiClient.getFavorites();
       return data.map(({ id, product }) => ({
         ...product,
+        id: product.id,
         favoriteId: id,
       })) as FavoriteProduct[];
     },

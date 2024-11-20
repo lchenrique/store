@@ -40,14 +40,13 @@ function AdminLayoutContent({
         )}
       >
         {/* Mini Header */}
-        <div className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="fixed w-[calc(100vw-275px)]  top-0 z-30">
           <HeaderAdmin />
- 
         </div>
 
         {/* Área de Conteúdo */}
-        <div className="flex-1 p-6 md:p-8">
-          <PaletteStoreSync />
+        <div className="flex-1 p-6  pt-24">
+          {/* <PaletteStoreSync /> */}
           {children}
         </div>
       </main>

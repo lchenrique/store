@@ -2,9 +2,10 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { ReactNode } from "react";
 
 interface HeroProps {
-  title?: string;
+  title?: ReactNode;
   subtitle?: string;
   imageUrl?: string;
 }
@@ -15,11 +16,11 @@ export function Hero({
   imageUrl = "/hero-image.jpg", // Você precisará adicionar uma imagem aqui
 }: HeroProps) {
   return (
-    <div className="relative overflow-hidden bg-background pt-20 md:pt-10">
+    <div className="relative overflow-hidden bg-background pt-20 md:pt-10 ">
       {/* Gradient Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-background to-background" />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1280px]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center py-12 md:py-16 lg:py-20">
           {/* Text Content */}
           <motion.div
@@ -28,14 +29,14 @@ export function Hero({
             transition={{ duration: 0.5 }}
             className="relative z-10 space-y-6 text-center md:text-left"
           >
-            <motion.h1
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-center md:text-left"
+              className="text-4xl md:text-5xl lg:text-[3.75rem] font-bold tracking-tight text-center md:text-left "
             >
               {title}
-            </motion.h1>
+            </motion.div>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

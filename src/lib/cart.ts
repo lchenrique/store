@@ -6,17 +6,19 @@ export interface CartItem {
   quantity: number;
 }
 
-export function getCart(): CartItem[] {
-  const cartCookie = cookies().get('cart');
+export async function getCart(): Promise<CartItem[]> {
+  const cookieStore = await cookies();
+  const cartCookie = cookieStore.get('cart');
   return cartCookie ? JSON.parse(cartCookie.value) : [];
 }
 
-export function setCart(cart: CartItem[]) {
-  cookies().set('cart', JSON.stringify(cart));
+export async function setCart(cart: CartItem[]) {
+  const cookieStore = await cookies();
+  cookieStore.set('cart', JSON.stringify(cart));
 }
 
-export function addToCart(productId: string, quantity: number = 1) {
-  const cart = getCart();
+export async function addToCart(productId: string, quantity: number = 1) {
+  const cart = await getCart();
   const existingItem = cart.find(item => item.productId === productId);
 
   if (existingItem) {
@@ -29,25 +31,25 @@ export function addToCart(productId: string, quantity: number = 1) {
     });
   }
 
-  setCart(cart);
+  await setCart(cart);
 }
 
-export function updateCartItem(itemId: string, quantity: number) {
-  const cart = getCart();
+export async function updateCartItem(itemId: string, quantity: number) {
+  const cart = await getCart();
   const item = cart.find(item => item.id === itemId);
 
   if (item) {
     item.quantity = quantity;
-    setCart(cart);
+    await setCart(cart);
   }
 }
 
-export function removeFromCart(itemId: string) {
-  const cart = getCart();
+export async function removeFromCart(itemId: string) {
+  const cart = await getCart();
   const updatedCart = cart.filter(item => item.id !== itemId);
-  setCart(updatedCart);
+  await setCart(updatedCart);
 }
 
-export function clearCart() {
-  setCart([]);
+export async function clearCart() {
+  await setCart([]);
 }

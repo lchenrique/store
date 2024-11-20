@@ -2,8 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "./use-user";
-import { Address } from "@/types";
-import { apiClient } from "@/services/api";
+import apiClient  from "@/services/api";
+import { AddressInput } from "@/services/types";
 
 export function useUserAddresses() {
   const queryClient = useQueryClient();
@@ -20,8 +20,8 @@ export function useUserAddresses() {
   });
 
   const addAddress = useMutation({
-    mutationFn: async (address: Omit<Address, 'id' | 'userId'>) => {
-      return apiClient.addAddress(address);
+    mutationFn: async (address: Omit<AddressInput, 'id' | 'userId'>) => {
+      return apiClient.createAddress(address);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses', user?.id] });

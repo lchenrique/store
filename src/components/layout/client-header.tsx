@@ -36,6 +36,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+import { useLogout } from "@/hooks/use-logout";
+import { toast } from "@/hooks";
 
 interface ClientHeaderProps {
   user: SupabaseUser | null;
@@ -45,11 +47,23 @@ interface ClientHeaderProps {
 export function ClientHeader({ user, store }: ClientHeaderProps) {
   const cart = useCart((state) => state.items);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const {logout} = useLogout()
   const router = useRouter();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.refresh();
+    try {
+      const { error } = await logout();
+      if (error) throw error;
+      
+      router.refresh();
+    } catch (error) {
+      console.error('[handleLogout] Error:', error);
+      toast({
+        title: 'Erro ao fazer logout',
+        description: 'Tente novamente em alguns instantes.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const menuItems = [
@@ -68,22 +82,22 @@ export function ClientHeader({ user, store }: ClientHeaderProps) {
           <div className="container mx-auto py-4 px-6">
             <div className="flex items-center justify-between">
               {/* Logo */}
-              <Link href="/" className="flex items-center gap-3">
-                <div className="relative h-12 w-12 overflow-hidden rounded-xl">
-                  <Image
+              <Link href="/" className="flex items-center gap-2">
+                <div className="relative min-w-9 h-9 max-h-9 flex-1  rounded-xl">
+                  <img
                     src={store?.logo || ""}
                     alt="Logo"
-                    fill
-                    className="object-cover"
+                    className="object-cover w-full max-h-9"
                   />
                 </div>
+
                 <span className="text-xl font-bold text-primary hidden sm:block">
                   {store?.name}
                 </span>
               </Link>
 
               {/* Desktop Navigation */}
-              <nav className="hidden md:flex items-center gap-6">
+              <nav className="hidden xl:flex items-center gap-6">
                 {menuItems.map((item) => (
                   <Link
                     key={item.href}
@@ -123,7 +137,7 @@ export function ClientHeader({ user, store }: ClientHeaderProps) {
                         variant="secondary"
                         className="absolute -right-2 -top-2 h-5 w-5 rounded-full p-0 flex items-center justify-center"
                       >
-                        {cart.length}
+                        {cart.reduce((total, item) => total + item.quantity, 0)}
                       </Badge>
                     )}
                   </Button>
@@ -168,9 +182,9 @@ export function ClientHeader({ user, store }: ClientHeaderProps) {
                         <TooltipTrigger asChild>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="rounded-lg hover:bg-accent/10"
                               >
                                 <LogOut className="h-5 w-5" />
@@ -212,7 +226,7 @@ export function ClientHeader({ user, store }: ClientHeaderProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="rounded-lg  hover:bg-accent/10 md:hidden"
+                      className="rounded-lg  hover:bg-accent/10 xl:hidden"
                     >
                       <Menu className="h-5 w-5" />
                     </Button>

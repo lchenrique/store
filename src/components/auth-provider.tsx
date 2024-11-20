@@ -12,7 +12,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const setUser = useInitialUser((state) => state.setUser);
-  const {  profile } = useProfile();
+  const { profile } = useProfile(); // Desabilitando a query automática
 
   useEffect(() => {
     // Verificar se já tem sessão
