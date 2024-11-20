@@ -1,12 +1,11 @@
 import { getStore } from "@/lib/store";
-import { ClientHeader } from "./client-header";
-import { getUserSSR } from "@/services/get-user-ssr";
 import { createClient } from "@/lib/supabase/server";
+import { HeaderWrapper } from "@/components/layout/header-wrapper";
 
 export async function Header() {
   const supabase = await createClient();
   const {data: { user }} = await supabase.auth.getUser();
   const store = await getStore();
   
-  return <ClientHeader store={store} user={user}/>;
+  return <HeaderWrapper store={store} user={user} />;
 }

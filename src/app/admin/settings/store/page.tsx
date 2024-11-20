@@ -1,15 +1,13 @@
 import { Store } from "@prisma/client";
 import db from "@/lib/db";
-import { SettingsForm } from "./components/settings-form";
+import { SettingsForm } from "../components/settings-form";
 import { MainContainer } from "@/components/layout/main-container";
-import MainHeader from "@/components/layout/main-header";
-import BackButton from "@/components/back-button";
 
 async function getStore() {
   return await db.store.findFirst();
 }
 
-export default async function SettingsPage() {
+export default async function StoreSettingsPage() {
   const store = await getStore();
 
   if (!store) {

@@ -14,6 +14,7 @@ model Store {
   description String?
   logo        String?
   palette     String   @default("zinc")
+  headerStyle String   @default("classic")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   settings    Json?
@@ -39,16 +40,17 @@ model User {
 }
 
 model Product {
-  id          String   @id(map: "Product_new_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id          String      @id(map: "Product_new_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name        String
   description String?
   price       Float
   images      String[]
-  stock       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  rating      Float?   @default(0)
+  stock       Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  rating      Float?     @default(0)
   reviews     Review[]
+  orderItems  OrderItem[]
 }
 
 model Review {
@@ -86,6 +88,7 @@ model OrderItem {
   createdAt DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
   updatedAt DateTime @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @db.Timestamptz(6)
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model CartItem {

@@ -4,7 +4,6 @@
 import { useState, type ReactNode } from 'react';
 
 
-
   interface QueryProviderProps {
     children: ReactNode
   }
@@ -19,11 +18,21 @@ import { useState, type ReactNode } from 'react';
         },
       },
     }))
-  
+
     return (
       <QueryClientProvider client={queryClient}>
         {children}
-        <ReactQueryDevtools initialIsOpen={false} />
+        <ReactQueryDevtools 
+          initialIsOpen={false} 
+          position="left"
+          buttonPosition="bottom-left"
+          toggleButtonProps={{
+            style: {
+              marginBottom: '10px',
+              marginLeft: '10px'
+            }
+          }}
+        />
       </QueryClientProvider>
     )
   }

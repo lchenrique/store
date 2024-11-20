@@ -6,7 +6,7 @@ import { FormCard } from '@/components/auth/form-card';
 import { IconInput } from '@/components/auth/icon-input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase/client';
+import apiClient from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
 import { Loader2, Lock, Mail, User } from 'lucide-react';
@@ -19,7 +19,7 @@ import { registerSchema, type RegisterFormData } from '../types';
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  
+
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -34,53 +34,23 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterFormData) => {
     setLoading(true);
     try {
-      // 1. Criar o usuário na autenticação
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      await apiClient.auth.signUp({
         email: data.email,
         password: data.password,
-        options: {
-          data: {
-            name: data.name,
-            role: 'CUSTOMER',  // Sempre será CUSTOMER para novos registros
-          },
-        },
+        name: data.name
       });
-
-      if (authError) {
-        toast({
-          title: 'Erro ao criar conta',
-          description: authError.message,
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      if (authData.user) {
-        // 2. Criar o usuário no banco de dados
-        const response = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Erro ao criar perfil');
-        }
-      }
 
       toast({
         title: 'Conta criada com sucesso!',
-        description: 'Verifique seu email para confirmar sua conta.',
+        description: 'Você será redirecionado para o login.',
       });
 
       router.push('/auth/login');
     } catch (error) {
-      console.error('Error:', error);
       toast({
         title: 'Erro ao criar conta',
-        description: 'Ocorreu um erro ao criar sua conta. Tente novamente.',
-        variant: 'destructive',
+        description: error instanceof Error ? error.message : 'Ocorreu um erro ao criar sua conta',
+        variant: 'destructive'
       });
     } finally {
       setLoading(false);
@@ -157,7 +127,7 @@ export default function RegisterPage() {
             </Button>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="flex items-center justify-center text-sm"
             variants={itemVariants}
           >

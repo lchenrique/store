@@ -61,10 +61,10 @@ export function useFavorite(productId: string) {
       });
     },
     onSuccess: (data) => {
+  
       if (!data) return; // Se não houver dados (caso de redirecionamento), não faz nada
-      
+      console.log("[onSuccess]", data);
       // Atualiza com o valor real retornado pela API
-      queryClient.setQueryData(["favorite", productId], data.isFavorite);
 
       toast({
         title: data.isFavorite ? "Adicionado aos favoritos" : "Removido dos favoritos",
@@ -72,6 +72,9 @@ export function useFavorite(productId: string) {
           ? "Produto adicionado à sua lista de favoritos."
           : "Produto removido da sua lista de favoritos.",
       });
+
+      queryClient.setQueryData(["favorite", productId], data.isFavorite);
+
     },
   });
 

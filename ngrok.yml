@@ -1,0 +1,7 @@
+version: "2"
+authtoken: 1tVtNB0ECnyvnyxyu90MAlL7baN_cycaXog67mcb22XWjXnZ
+tunnels:
+  store:
+    proto: http
+    addr: 3000
+    hostname: ewe-simple-polecat.ngrok-free.app

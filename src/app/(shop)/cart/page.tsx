@@ -5,15 +5,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Product } from '@prisma/client';
-import { Minus, Plus, ShoppingBag, Trash2, Loader2 } from 'lucide-react';
+import { ShoppingBag, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { useQuery } from '@/hooks/use-query';
 import { toast } from '@/hooks/use-toast';
 import { useCart } from '@/hooks/use-cart';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { QuantitySelector } from '@/components/quantity-selector';
+import apiClient from '@/services/api';
 
 interface CartItem {
   id: string;
@@ -45,14 +46,10 @@ export default function CartPage() {
   async function handleCheckout() {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-      });
-
-      if (!response.ok) throw new Error();
-
-      const { url } = await response.json();
-      window.location.href = url;
+      const cart = JSON.parse(localStorage.getItem('cart-storage') || '[]');
+      console.log({cart});
+      const { data } = await apiClient.checkout(cart);
+      window.location.href = data.checkoutUrl;
     } catch {
       toast({
         title: 'Erro',
@@ -220,29 +217,13 @@ export default function CartPage() {
                       
                       <div className="mt-4 flex items-end justify-between">
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                            className="h-8 w-8 rounded-lg"
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <Input
-                            type="number"
-                            min="1"
+                          <QuantitySelector
                             value={item.quantity}
-                            onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
-                            className="h-8 w-14 text-center rounded-lg"
+                            onChange={(value) => updateQuantity(item.id, value)}
+                            minValue={1}
+                            maxValue={99}
+                            className="w-36"
                           />
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="h-8 w-8 rounded-lg"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
                         </div>
                         <p className="font-medium text-lg">
                           {formatPrice(item.price * item.quantity)}
@@ -264,24 +245,25 @@ export default function CartPage() {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="text-muted-foreground">
+                          Subtotal ({cart.reduce((acc, item) => acc + item.quantity, 0)} itens)
+                        </span>
                         <span>{formatPrice(total)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Frete</span>
-                        <span className="text-muted-foreground">Calculado no checkout</span>
+                        <span className="text-green-500">Grátis</span>
                       </div>
                     </div>
                     <Separator />
-                    <div className="flex justify-between text-lg font-medium">
+                    <div className="flex justify-between font-medium">
                       <span>Total</span>
                       <span>{formatPrice(total)}</span>
                     </div>
                   </CardContent>
-                  <CardFooter className="flex flex-col gap-2">
-                    <Button 
-                      className="w-full h-12" 
-                      size="lg"
+                  <CardFooter>
+                    <Button
+                      className="w-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
                       onClick={handleCheckout}
                       disabled={isLoading}
                     >
@@ -291,15 +273,9 @@ export default function CartPage() {
                           Processando...
                         </>
                       ) : (
-                        <>
-                          <ShoppingBag className="mr-2 h-4 w-4" />
-                          Finalizar Compra
-                        </>
+                        'Finalizar Compra'
                       )}
                     </Button>
-                    <p className="text-xs text-center text-muted-foreground px-4">
-                      Ao finalizar sua compra, você será redirecionado para nossa página de pagamento segura
-                    </p>
                   </CardFooter>
                 </Card>
               </div>

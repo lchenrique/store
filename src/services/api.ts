@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
+import { getAuthMessage } from '@/lib/supabase/auth-messages';
 import {
   Review,
   ReviewInput,
@@ -83,16 +84,18 @@ const clearSession = async () => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
+    const originalRequest = error?.config;
 
-    // Log detalhado do erro
-    console.error('API Error:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      data: error.response?.data,
-      error: error.message
-    });
+    // Log detalhado do erro apenas se não for um erro de negócio esperado
+    if (!error.response?.data || error.response.status >= 500) {
+      console.error('API Error:', {
+        url: error?.config?.url,
+        method: error?.config?.method,
+        status: error?.response?.status,
+        data: error?.response?.data,
+        error: error?.message
+      });
+    }
 
     // Se for erro 401 e não for uma tentativa de refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -125,53 +128,20 @@ axiosInstance.interceptors.response.use(
         }
       } catch (refreshError) {
         processQueue(refreshError);
-        
-        // Se não conseguir fazer refresh e ainda não estiver redirecionando
-        if (!isRedirecting) {
-          isRedirecting = true;
-          
-          // Limpa a sessão
-          await clearSession();
-          await supabase.auth.signOut();
-          
-          // Se estiver no cliente, redireciona
-          if (typeof window !== 'undefined') {
-            window.location.href = '/auth/login?expired=true';
-          }
-        }
-        
-        return Promise.reject(new Error('Sessão expirada. Por favor, faça login novamente.'));
+        await clearSession();
+        throw refreshError;
       } finally {
         isRefreshing = false;
       }
     }
 
-    // Customiza o erro baseado na resposta
-    if (error.response) {
-      const message = error.response.data?.message || 'Ocorreu um erro inesperado';
-      const status = error.response.status;
-
-      // Trata erros específicos
-      switch (status) {
-        case 403:
-          return Promise.reject(new Error('Você não tem permissão para realizar esta ação.'));
-        case 404:
-          return Promise.reject(new Error('O recurso solicitado não foi encontrado.'));
-        case 422:
-          return Promise.reject(new Error(message || 'Dados inválidos. Verifique os campos e tente novamente.'));
-        case 429:
-          return Promise.reject(new Error('Muitas requisições. Por favor, aguarde um momento.'));
-        default:
-          if (status >= 500) {
-            return Promise.reject(new Error('Erro no servidor. Por favor, tente novamente mais tarde.'));
-          }
-          return Promise.reject(new Error(message));
-      }
-    } else if (error.request) {
-      return Promise.reject(new Error('Não foi possível conectar ao servidor. Verifique sua conexão.'));
+    // Para outros erros, retorna a mensagem da API se disponível
+    if (error.response?.data) {
+      console.log('Error data:', error.response.data);
+      throw new Error(getAuthMessage(error.response.data));
     }
-
-    return Promise.reject(error);
+    
+    throw error;
   }
 );
 
@@ -243,6 +213,10 @@ const apiClient = {
   updateCartItemQuantity: async (productId: string, quantity: number) => {
     const response = await axiosInstance.patch(`/cart/${productId}`, { quantity });
     return response.data;
+  },
+  
+  checkout(cart: CartItem[]) {
+    return axiosInstance.post<{ checkoutUrl: string; orderId: string }>('/checkout', cart);
   },
 
   // Address
@@ -388,8 +362,8 @@ const apiClient = {
       const response = await axiosInstance.post('/auth/signin', credentials);
       return response.data;
     },
-    signUp: async (credentials: { email: string; password: string }) => {
-      const response = await axiosInstance.post('/auth/signup', credentials);
+    signUp: async (credentials: { email: string; password: string; name: string }) => {
+      const response = await axiosInstance.post('/auth/register', credentials);
       return response.data;
     },
     signOut: async () => {
@@ -492,8 +466,8 @@ const apiClient = {
       return response.data;
     },
     
-    updateOrderStatus: async (id: string, status: Order['status']) => {
-      const response = await axiosInstance.patch(`/admin/orders/${id}/status`, { status });
+    updateOrderStatus: async (orderId: string, status: string) => {
+      const response = await axiosInstance.patch(`/orders/${orderId}/status`, { status });
       return response.data;
     },
 

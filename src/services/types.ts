@@ -46,16 +46,20 @@ export interface AddressInput {
 export interface Order {
   id: string;
   created_at: string;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  status: 'PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
   total: number;
   items: {
     id: string;
     quantity: number;
     price: number;
+    product_id: string;
     product: {
       id: string;
       name: string;
+      description?: string;
+      price: number;
       images: string[];
+      stock: number;
     };
   }[];
 }

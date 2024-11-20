@@ -8,11 +8,14 @@ import Image from "next/image";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const orderStatus = {
-  pending: { label: "Pendente", color: "text-yellow-600" },
-  processing: { label: "Em processamento", color: "text-blue-600" },
-  completed: { label: "Concluído", color: "text-green-600" },
-  cancelled: { label: "Cancelado", color: "text-red-600" },
+type OrderStatus = "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+
+const orderStatus: Record<OrderStatus, { label: string; color: string }> = {
+  PENDING: { label: "Pendente", color: "text-yellow-600" },
+  PAID: { label: "Pago", color: "text-green-600" },
+  SHIPPED: { label: "Enviado", color: "text-blue-600" },
+  DELIVERED: { label: "Entregue", color: "text-green-600" },
+  CANCELLED: { label: "Cancelado", color: "text-red-600" },
 };
 
 export function OrdersCard() {
@@ -49,20 +52,24 @@ export function OrdersCard() {
                 <div className="space-y-3">
                   {order.items.map((item) => (
                     <div key={item.id} className="flex gap-4">
-                      {item.product.images?.[0] && (
-                        <div className="relative w-16 h-16">
+                      <div className="relative h-16 w-16 overflow-hidden rounded">
+                        {item.product.images?.[0] ? (
                           <Image
                             src={item.product.images[0]}
                             alt={item.product.name}
                             fill
-                            className="object-cover rounded-md"
+                            className="object-cover"
                           />
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-medium">{item.product.name}</p>
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                            <span className="text-gray-400 text-xs">Sem imagem</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <p className="text-sm font-medium">{item.product.name}</p>
                         <p className="text-sm text-gray-500">
-                          {item.quantity} x {formatPrice(item.price)}
+                          Quantidade: {item.quantity} x {formatPrice(item.price)}
                         </p>
                       </div>
                     </div>
